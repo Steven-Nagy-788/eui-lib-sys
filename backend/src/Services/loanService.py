@@ -315,3 +315,14 @@ class LoanService:
     async def delete_loan(self, loan_id: UUID) -> bool:
         """Delete a loan (admin only, use with caution)"""
         return await self.loan_broker.delete_loan(loan_id)
+    
+    async def search_loans(
+        self,
+        user_id: Optional[UUID] = None,
+        status: Optional[str] = None,
+        from_date: Optional[str] = None,
+        to_date: Optional[str] = None
+    ) -> List[LoanResponse]:
+        """Search loans with multiple filters"""
+        loans = await self.loan_broker.search_loans(user_id, status, from_date, to_date)
+        return [LoanResponse(**loan) for loan in loans]

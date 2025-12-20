@@ -8,64 +8,56 @@ class UserBroker:
     def __init__(self, client: Client):
         self.client = client
 
-    async def select_all_users(self, skip: int = 0, limit: int = 10) -> list[dict]:
+    async def SelectAllUsers(self, skip: int = 0, limit: int = 10) -> list[dict]:
         def _fetch():
             return self.client.table("users").select("*").range(skip, skip + limit - 1).execute()  
         user = await asyncio.to_thread(_fetch)      
         return user.data
     
-    async def select_user_by_id(self, user_id: UUID) -> Optional[dict]:
+    async def SelectUserById(self, user_id: UUID) -> Optional[dict]:
         def _fetch():
             return self.client.table("users").select("*").eq("id", str(user_id)).execute()
         response = await asyncio.to_thread(_fetch)
         return response.data[0] if response.data else None
     
-    async def get_user_by_email(self, email: str) -> Optional[dict]:
+    async def SelectUserByEmail(self, email: str) -> Optional[dict]:
         """Get a user by email"""
         def _fetch():
             return self.client.table("users").select("*").eq("email", email).execute()
-        
-        try:
-            response = await asyncio.to_thread(_fetch)
-            if response.data:
-                return response.data[0]
-            return None
-        except Exception:
-            return None         
-    async def select_user_by_university_id(self, university_id: str) -> Optional[dict]:
+        response = await asyncio.to_thread(_fetch)
+        return response.data[0] if response.data else None         
+    async def SelectUserByUniversityId(self, university_id: str) -> Optional[dict]:
         """Get a user by university ID"""
         def _fetch():
             return self.client.table("users").select("*").eq("university_id", university_id).execute()
-        
-        try:
-            response = await asyncio.to_thread(_fetch)
-            if response.data:
-                return response.data[0]
-            return None
-        except Exception:
-            return None
+        response = await asyncio.to_thread(_fetch)
+        return response.data[0] if response.data else None
 
-    async def insert_user(self, user_data: dict) -> dict:
+    async def InsertUser(self, user_data: dict) -> dict:
         def _insert():
             return self.client.table("users").insert(user_data).execute()
         return (await asyncio.to_thread(_insert)).data[0]
     
-    async def update_user(self, user_id: UUID, update_data: dict) -> Optional[dict]:
+    async def UpdateUser(self, user_id: UUID, update_data: dict) -> Optional[dict]:
         """Update a user by ID"""
         def _update():
             return self.client.table("users").update(update_data).eq("id", str(user_id)).execute()
-        
-        try:
-            response = await asyncio.to_thread(_update)
-            if response.data:
-                return response.data[0]
-            return None
-        except Exception as e:
-            if "unique constraint" in str(e).lower():
-                raise HTTPException(status_code=400, detail="Duplicate value")
-            raise HTTPException(status_code=500, detail=str(e))
+        response = await asyncio.to_thread(_update)
+        return response.data[0] if response.data else None
     
-    async def delete_user(self, user_id: UUID) -> bool:
+    async def DeleteUser(self, user_id: UUID) -> bool:
         def _delete():
             return self.client.table("users").delete().eq("id", str(user_id)).execute()
-        return len(await asyncio.to_thread(_delete).data) > 0
+        response = await asyncio.to_thread(_delete)
+        return len(response.data) > 0
+    
+    async def SearchUsers(self, query: str) -> list[dict]:
+        """Search users by name, email, or university ID (case-insensitive)"""
+        def _search():
+            return self.client.table("users").select("*").or_(
+                f"full_name.ilike.%{query}%,"
+                f"email.ilike.%{query}%,"
+                f"university_id.ilike.%{query}%"
+            ).execute()
+        response = await asyncio.to_thread(_search)
+        return response.data if response.data else []

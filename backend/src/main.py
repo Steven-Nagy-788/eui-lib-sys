@@ -18,6 +18,7 @@ from .routers.bookRouter import router as book_router
 from .routers.bookCopyRouter import router as book_copy_router
 from .routers.courseRouter import router as course_router
 from .routers.loanRouter import router as loan_router
+from .routers.statsRouter import router as stats_router
 from .config import get_supabase
 
 # ============================================
@@ -47,6 +48,7 @@ app.include_router(book_router)
 app.include_router(book_copy_router)
 app.include_router(course_router)
 app.include_router(loan_router)
+app.include_router(stats_router)
 
 
 @app.get("/docs", include_in_schema=False)

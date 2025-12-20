@@ -6,11 +6,13 @@ from .Brokers.bookBroker import BookBroker
 from .Brokers.bookCopyBroker import BookCopyBroker
 from .Brokers.courseBroker import CourseBroker
 from .Brokers.loanBroker import LoanBroker
+from .Brokers.statsBroker import StatsBroker
 from .Services.userService import UserService
 from .Services.bookService import BookService
 from .Services.bookCopyService import BookCopyService
 from .Services.courseService import CourseService
 from .Services.loanService import LoanService
+from .Services.statsService import StatsService
 
 # 1. Inject the Singleton Client
 def get_db_client() -> Client:
@@ -32,6 +34,9 @@ def get_course_broker(client: Client = Depends(get_db_client)) -> CourseBroker:
 def get_loan_broker(client: Client = Depends(get_db_client)) -> LoanBroker:
     return LoanBroker(client)
 
+def get_stats_broker(client: Client = Depends(get_db_client)) -> StatsBroker:
+    return StatsBroker(client)
+
 # 3. Inject the Service (initialized with the broker)
 def get_user_service(broker: UserBroker = Depends(get_user_broker)) -> UserService:
     return UserService(broker)
@@ -52,3 +57,6 @@ def get_loan_service(
     course_broker: CourseBroker = Depends(get_course_broker)
 ) -> LoanService:
     return LoanService(loan_broker, user_broker, copy_broker, course_broker)
+
+def get_stats_service(broker: StatsBroker = Depends(get_stats_broker)) -> StatsService:
+    return StatsService(broker)

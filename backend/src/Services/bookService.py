@@ -8,26 +8,31 @@ class BookService:
     def __init__(self, broker: BookBroker):
         self.broker = broker
 
-    async def get_all_books(self, skip: int = 0, limit: int = 10) -> List[BookResponse]:
-        return [BookResponse(**book) for book in await self.broker.select_all_books(skip=skip, limit=limit)]
+    async def RetrieveAllBooks(self, skip: int = 0, limit: int = 10) -> List[BookResponse]:
+        return [BookResponse(**book) for book in await self.broker.SelectAllBooks(skip=skip, limit=limit)]
     
-    async def get_book_by_id(self, book_id: UUID) -> Optional[BookResponse]:
-        book_data = await self.broker.select_book_by_id(book_id)
+    async def RetrieveBookById(self, book_id: UUID) -> Optional[BookResponse]:
+        book_data = await self.broker.SelectBookById(book_id)
         return BookResponse(**book_data) if book_data is not None else None
     
-    async def create_book(self, book: BookCreate) -> BookResponse:
-        existing_book = await self.broker.select_book_by_isbn(book.isbn)
+    async def AddBook(self, book: BookCreate) -> BookResponse:
+        existing_book = await self.broker.SelectBookByIsbn(book.isbn)
         if existing_book:
             raise ValueError(f"ISBN {book.isbn} already exists")
         book_data = book.model_dump()
-        return BookResponse(**await self.broker.insert_book(book_data))
+        return BookResponse(**await self.broker.InsertBook(book_data))
     
-    async def update_book(self, book_id: UUID, book: BookCreate) -> Optional[BookResponse]: 
-        if not await self.broker.select_book_by_id(book_id):
+    async def ModifyBook(self, book_id: UUID, book: BookCreate) -> Optional[BookResponse]: 
+        if not await self.broker.SelectBookById(book_id):
             return None
         update_data = book.model_dump(exclude_unset=True)
-        updated_book = await self.broker.update_book(book_id, update_data)
+        updated_book = await self.broker.UpdateBook(book_id, update_data)
         return BookResponse(**updated_book) if updated_book is not None else None
         
-    async def delete_book(self, book_id: UUID) -> bool:
-        return await self.broker.delete_book(book_id)
+    async def RemoveBook(self, book_id: UUID) -> bool:
+        return await self.broker.DeleteBook(book_id)
+    
+    async def SearchBooks(self, query: str) -> List[BookResponse]:
+        """Search books by title, author, or ISBN"""
+        books = await self.broker.SearchBooks(query)
+        return [BookResponse(**book) for book in books]

@@ -3,6 +3,7 @@ from typing import List, Optional
 from uuid import UUID
 
 from ..dependencies import get_loan_service
+from ..auth import get_current_user, require_admin
 from ..Services.loanService import LoanService
 from ..Models.Loans import (
     LoanRequest,
@@ -23,7 +24,8 @@ router = APIRouter(
 async def get_all_loans(
     skip: int = 0,
     limit: int = 100,
-    service: LoanService = Depends(get_loan_service)
+    service: LoanService = Depends(get_loan_service),
+    current_user: dict = Depends(get_current_user)
 ):
     """Get all loans with pagination"""
     return await service.get_all_loans(skip=skip, limit=limit)
@@ -34,7 +36,8 @@ async def get_loans_by_status(
     status: LoanStatus,
     skip: int = 0,
     limit: int = 100,
-    service: LoanService = Depends(get_loan_service)
+    service: LoanService = Depends(get_loan_service),
+    current_user: dict = Depends(get_current_user)
 ):
     """Get all loans with a specific status (pending, active, returned, overdue, rejected)"""
     return await service.get_loans_by_status(status, skip, limit)
@@ -44,7 +47,8 @@ async def get_loans_by_status(
 async def get_user_loans(
     user_id: UUID,
     status: Optional[str] = Query(None, description="Filter by status"),
-    service: LoanService = Depends(get_loan_service)
+    service: LoanService = Depends(get_loan_service),
+    current_user: dict = Depends(get_current_user)
 ):
     """Get all loans for a specific user, optionally filtered by status"""
     return await service.get_loans_by_user(user_id, status)
@@ -52,7 +56,8 @@ async def get_user_loans(
 
 @router.get("/overdue", response_model=List[LoanResponse])
 async def get_overdue_loans(
-    service: LoanService = Depends(get_loan_service)
+    service: LoanService = Depends(get_loan_service),
+    current_user: dict = Depends(get_current_user)
 ):
     """Get all loans that are overdue"""
     return await service.get_overdue_loans()
@@ -61,7 +66,8 @@ async def get_overdue_loans(
 @router.get("/{loan_id}", response_model=LoanResponse)
 async def get_loan(
     loan_id: UUID,
-    service: LoanService = Depends(get_loan_service)
+    service: LoanService = Depends(get_loan_service),
+    current_user: dict = Depends(get_current_user)
 ):
     """Get a specific loan by ID"""
     loan = await service.get_loan_by_id(loan_id)
@@ -74,7 +80,8 @@ async def get_loan(
 
 @router.get("/policies/all", response_model=List[LoanPolicyResponse])
 async def get_all_loan_policies(
-    service: LoanService = Depends(get_loan_service)
+    service: LoanService = Depends(get_loan_service),
+    current_user: dict = Depends(get_current_user)
 ):
     """Get all loan policies (max books and loan duration by role)"""
     return await service.get_all_loan_policies()
@@ -83,7 +90,8 @@ async def get_all_loan_policies(
 @router.get("/policies/{role}", response_model=LoanPolicyResponse)
 async def get_loan_policy(
     role: str,
-    service: LoanService = Depends(get_loan_service)
+    service: LoanService = Depends(get_loan_service),
+    current_user: dict = Depends(get_current_user)
 ):
     """Get loan policy for a specific role"""
     policy = await service.get_loan_policy(role)
@@ -96,9 +104,9 @@ async def get_loan_policy(
 
 @router.post("/request", response_model=LoanResponse, status_code=status.HTTP_201_CREATED)
 async def create_loan_request(
-    user_id: UUID,
     copy_id: UUID,
-    service: LoanService = Depends(get_loan_service)
+    service: LoanService = Depends(get_loan_service),
+    current_user: dict = Depends(get_current_user)
 ):
     """
     Create a new loan request
@@ -112,6 +120,8 @@ async def create_loan_request(
     Returns loan with status 'pending' awaiting admin approval
     """
     try:
+        from uuid import UUID
+        user_id = UUID(current_user["id"])
         new_loan = await service.create_loan_request(user_id, copy_id)
         return new_loan
     except ValueError as e:
@@ -126,7 +136,8 @@ async def create_loan_request(
 @router.post("/{loan_id}/approve", response_model=LoanResponse)
 async def approve_loan(
     loan_id: UUID,
-    service: LoanService = Depends(get_loan_service)
+    service: LoanService = Depends(get_loan_service),
+    current_user: dict = Depends(require_admin)
 ):
     """
     Approve a loan request (Admin only - TODO: add auth)
@@ -149,7 +160,8 @@ async def approve_loan(
 @router.post("/{loan_id}/reject", response_model=LoanResponse)
 async def reject_loan(
     loan_id: UUID,
-    service: LoanService = Depends(get_loan_service)
+    service: LoanService = Depends(get_loan_service),
+    current_user: dict = Depends(require_admin)
 ):
     """
     Reject a loan request (Admin only - TODO: add auth)
@@ -175,7 +187,8 @@ async def return_loan(
         False, 
         description="Increment user's infractions count if returned late"
     ),
-    service: LoanService = Depends(get_loan_service)
+    service: LoanService = Depends(get_loan_service),
+    current_user: dict = Depends(require_admin)
 ):
     """
     Process a book return (Admin only - TODO: add auth)
@@ -200,7 +213,8 @@ async def return_loan(
 
 @router.post("/mark-overdue", response_model=List[LoanResponse])
 async def mark_overdue_loans(
-    service: LoanService = Depends(get_loan_service)
+    service: LoanService = Depends(get_loan_service),
+    current_user: dict = Depends(require_admin)
 ):
     """
     Mark all active loans past their due date as overdue (Admin/System only)
@@ -209,6 +223,18 @@ async def mark_overdue_loans(
     """
     updated_loans = await service.mark_overdue_loans()
     return updated_loans
+
+
+@router.get("/search/", response_model=List[LoanResponse])
+async def search_loans(
+    user_id: Optional[UUID] = Query(None, description="Filter by user ID"),
+    status: Optional[str] = Query(None, description="Filter by status"),
+    from_date: Optional[str] = Query(None, description="Filter by request date from (YYYY-MM-DD)"),
+    to_date: Optional[str] = Query(None, description="Filter by request date to (YYYY-MM-DD)"),
+    service: LoanService = Depends(get_loan_service)
+):
+    """Search loans with multiple filters"""
+    return await service.search_loans(user_id, status, from_date, to_date)
 
 
 # ==================== LOAN UPDATE/DELETE ====================
