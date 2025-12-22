@@ -21,23 +21,10 @@ function LoginPage({ onLogin }) {
       // Login with email (or convert ID to email if needed)
       const email = idOrEmail.includes('@') ? idOrEmail : `${idOrEmail}@students.eui.edu.eg`
       
-      const { user } = await login(email, password)
+      await login(email, password)
       
-      // Map backend role to frontend role
-      const mappedUser = {
-        id: user.id,
-        name: user.full_name,
-        email: user.email,
-        role: user.role === 'admin' ? 'admin' : 'patron',
-        university_id: user.university_id,
-        faculty: user.faculty,
-        academic_year: user.academic_year,
-        infractions_count: user.infractions_count,
-        is_blacklisted: user.is_blacklisted,
-      }
-      
-      sessionStorage.setItem("user", JSON.stringify(mappedUser))
-      onLogin(mappedUser)
+      // Call onLogin callback - user will be retrieved from token in App.jsx
+      onLogin()
     } catch (err) {
       console.error('Login failed:', err)
       setError(err.message || "Invalid email or password. Please try again.")

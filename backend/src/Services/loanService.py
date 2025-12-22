@@ -111,11 +111,13 @@ class LoanService:
         if has_on_loan:
             raise ValueError("User already has this book copy on loan")
         
+        due_date = await self.calculate_due_date(user_id, copy_id)
         # Create loan request
         loan_data = {
             "user_id": str(user_id),
             "copy_id": str(copy_id),
-            "status": "pending"
+            "status": "pending",
+            "due_date": due_date.isoformat()
         }
         
         created_loan = await self.loan_broker.InsertLoan(loan_data)

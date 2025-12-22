@@ -1,67 +1,108 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { getUserLoans } from "../api/loansService"
+import { getBook } from "../api/booksService"
+import { getUserFromToken } from "../api/authService"
 import "../assets/PatronPages.css"
 
 function PatronBookbagPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("all")
+  const [loans, setLoans] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
 
-  const borrowedBooks = [
-    {
-      id: 1,
-      title: "Understanding Calculus Second Edition",
-      author: "H. S. Bear",
-      course: "C-MA111",
-      publisher: "Wiley-IEEE Press",
-      isbn: "978-0-471-43307-1",
-      image: "/calculus-textbook-blue-orange.jpg",
-      bookingDate: "10/12/25",
-      returnDate: "17/12/25",
-      status: "Owned",
-      daysLeft: 2,
-    },
-    {
-      id: 2,
-      title: "Understanding Calculus Second Edition",
-      author: "H. S. Bear",
-      course: "C-MA111",
-      publisher: "Wiley-IEEE Press",
-      isbn: "978-0-471-43307-1",
-      image: "/calculus-textbook-blue-orange.jpg",
-      bookingDate: "10/12/25",
-      returnDate: "17/12/25",
-      status: "Overdue",
-      daysLeft: -10,
-    },
-    {
-      id: 3,
-      title: "Digital Logic Design",
-      author: "M. Morris Mano",
-      course: "C-CE102",
-      publisher: "Pearson",
-      isbn: "978-0-13-277420-8",
-      image: "/digital-logic-textbook.jpg",
-      bookingDate: "15/12/25",
-      returnDate: "22/12/25",
-      status: "Pending Pickup",
-      daysLeft: 5, // Added daysLeft for pending pickup status
-    },
-  ]
+  const currentUser = getUserFromToken()
 
-  const handleCancelReservation = (bookId) => {
-    console.log(`Canceling reservation for book ${bookId}`)
-    // Logic to cancel reservation would go here
+  useEffect(() => {
+    if (currentUser) {
+      loadUserLoans()
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentUser])
+
+  const loadUserLoans = async () => {
+    try {
+      setIsLoading(true)
+      setError("")
+      
+      // Get all loans for current user
+      const loansData = await getUserLoans(currentUser.id)
+      
+      // Fetch book details for each loan
+      const loansWithBooks = await Promise.all(
+        loansData.map(async (loan) => {
+          try {
+            const book = await getBook(loan.copy_id) // Need to get book from copy
+            return {
+              ...loan,
+              book: book,
+            }
+          } catch {
+            return {
+              ...loan,
+              book: null,
+            }
+          }
+        })
+      )
+      
+      setLoans(loansWithBooks)
+    } catch (err) {
+      console.error('Failed to load loans:', err)
+      setError(err.message || 'Failed to load your bookbag')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const filteredBooks = borrowedBooks.filter((book) => {
+  const getStatusDisplay = (loan) => {
+    if (loan.status === 'pending') return 'Pending Pickup'
+    if (loan.status === 'active') {
+      // Check if overdue
+      const dueDate = new Date(loan.due_date)
+      const now = new Date()
+      if (now > dueDate) return 'Overdue'
+      return 'Owned'
+    }
+    if (loan.status === 'returned') return 'Returned'
+    if (loan.status === 'rejected') return 'Rejected'
+    return loan.status
+  }
+
+  const getDaysLeft = (loan) => {
+    if (!loan.due_date || loan.status !== 'active') return null
+    const dueDate = new Date(loan.due_date)
+    const now = new Date()
+    const diffTime = dueDate - now
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A'
+    const date = new Date(dateString)
+    return date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" })
+  }
+
+  const filteredLoans = loans.filter((loan) => {
+    if (!loan.book) return false
+    
     const matchesSearch =
-      book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      book.course.toLowerCase().includes(searchQuery.toLowerCase())
-    const matchesStatus = sortBy === "all" || book.status.toLowerCase().replace(" ", "") === sortBy.toLowerCase()
+      loan.book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      loan.book.author.toLowerCase().includes(searchQuery.toLowerCase())
+    
+    const loanStatus = getStatusDisplay(loan).toLowerCase().replace(" ", "")
+    const matchesStatus = sortBy === "all" || loanStatus === sortBy.toLowerCase()
+    
     return matchesSearch && matchesStatus
   })
+
+  const handleCancelReservation = (loanId) => {
+    // TODO: Implement cancel reservation
+    console.log(`Canceling reservation for loan ${loanId}`)
+  }
 
   return (
     <div className="pageContent">
@@ -100,70 +141,93 @@ function PatronBookbagPage() {
       </div>
 
       <div className="contentCard">
-        <div className="scrollableContent">
-          {filteredBooks.map((book) => (
-            <div key={book.id} className="bookCard">
-              <img src={book.image || "/placeholder.svg"} alt={book.title} className="bookImage" />
-              <div className="bookContent">
-                <h3 className="bookTitle">{book.title}</h3>
-                <p className="bookAuthor">{book.author}</p>
-                <div className="bookDetailsBox">
-                  <div className="bookDetailsLeft">
-                    <p className="detailRow">
-                      <span className="detailLabel">Course:</span>
-                      <span className="detailValue">{book.course}</span>
-                    </p>
-                    <p className="detailRow">
-                      <span className="detailLabel">Publisher:</span>
-                      <span className="detailValue">{book.publisher}</span>
-                    </p>
-                    <p className="detailRow">
-                      <span className="detailLabel">ISBN:</span>
-                      <span className="detailValue">{book.isbn}</span>
-                    </p>
-                  </div>
-                  <div className="bookDetailsCenter">
-                    <p className="detailRow">
-                      <span className="detailLabel">Booking Date:</span>
-                      <span className="detailValue">{book.bookingDate}</span>
-                    </p>
-                    <p className="detailRow">
-                      <span className="detailLabel">Return Date:</span>
-                      <span className="detailValue">{book.returnDate}</span>
-                    </p>
-                  </div>
-                  <div className="bookDetailsRight">
-                    <p className="detailRow">
-                      <span className="detailLabel">Status:</span>
-                      <span
-                        className={`statusBadge ${
-                          book.status === "Owned"
-                            ? "statusOwned"
-                            : book.status === "Overdue"
-                              ? "statusOverdue"
-                              : "statusPending"
-                        }`}
+        {error && (
+          <div className="errorMessage" style={{ padding: '20px', color: 'red', textAlign: 'center' }}>
+            {error}
+            <button onClick={loadUserLoans} style={{ marginLeft: '10px' }}>Retry</button>
+          </div>
+        )}
+
+        {isLoading ? (
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <p>Loading your books...</p>
+          </div>
+        ) : filteredLoans.length === 0 ? (
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <p>No books in your bookbag</p>
+          </div>
+        ) : (
+          <div className="scrollableContent">
+            {filteredLoans.map((loan) => {
+              const book = loan.book
+              const status = getStatusDisplay(loan)
+              const daysLeft = getDaysLeft(loan)
+
+              return (
+                <div key={loan.id} className="bookCard">
+                  <img src={book.book_pic_url || "/placeholder.svg"} alt={book.title} className="bookImage" 
+                       onError={(e) => { e.target.src = "/placeholder.svg" }} />
+                  <div className="bookContent">
+                    <h3 className="bookTitle">{book.title}</h3>
+                    <p className="bookAuthor">{book.author}</p>
+                    <div className="bookDetailsBox">
+                      <div className="bookDetailsLeft">
+                        <p className="detailRow">
+                          <span className="detailLabel">Publisher:</span>
+                          <span className="detailValue">{book.publisher || 'N/A'}</span>
+                        </p>
+                        <p className="detailRow">
+                          <span className="detailLabel">ISBN:</span>
+                          <span className="detailValue">{book.isbn}</span>
+                        </p>
+                      </div>
+                      <div className="bookDetailsCenter">
+                        <p className="detailRow">
+                          <span className="detailLabel">Request Date:</span>
+                          <span className="detailValue">{formatDate(loan.request_date)}</span>
+                        </p>
+                        <p className="detailRow">
+                          <span className="detailLabel">Due Date:</span>
+                          <span className="detailValue">{formatDate(loan.due_date)}</span>
+                        </p>
+                      </div>
+                      <div className="bookDetailsRight">
+                        <p className="detailRow">
+                          <span className="detailLabel">Status:</span>
+                          <span
+                            className={`statusBadge ${
+                              status === "Owned"
+                                ? "statusOwned"
+                                : status === "Overdue"
+                                  ? "statusOverdue"
+                                  : "statusPending"
+                            }`}
+                          >
+                            {status}
+                          </span>
+                        </p>
+                        {daysLeft !== null && (
+                          <p className="detailRow">
+                            <span className="detailLabel">{daysLeft >= 0 ? 'Days Left:' : 'Days Overdue:'}</span>
+                            <span className="detailValue">{Math.abs(daysLeft)}</span>
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                    {loan.status === 'pending' && (
+                      <button
+                        onClick={() => handleCancelReservation(loan.id)}
+                        className="cancelButton"
                       >
-                        {book.status}
-                      </span>
-                    </p>
-                    {book.daysLeft !== null && (
-                      <p className="detailRow">
-                        <span className="detailLabel">Days Left:</span>
-                        <span className={`detailValue ${book.daysLeft < 0 ? "daysOverdue" : ""}`}>{book.daysLeft}</span>
-                      </p>
-                    )}
-                    {book.status === "Pending Pickup" && (
-                      <button onClick={() => handleCancelReservation(book.id)} className="cancelReservationButton">
-                        Cancel
+                        Cancel Reservation
                       </button>
                     )}
                   </div>
                 </div>
-              </div>
-            </div>
-          ))}
-        </div>
+              )
+            })}
+          </div>
+        )}
       </div>
     </div>
   )

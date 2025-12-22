@@ -1,9 +1,20 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { getDashboardStats, getMostBorrowedBooks, getTopBorrowers } from "../api/statsService"
+import { deleteBook, createBook } from "../api/booksService"
+import { createBulkCopies } from "../api/bookCopiesService"
+import toast from "../utils/toast"
 import "../assets/AdminPages.css"
 
 function AdminDatabasePage() {
+  // Stats state
+  const [stats, setStats] = useState(null)
+  const [mostBorrowed, setMostBorrowed] = useState([])
+  const [topBorrowers, setTopBorrowers] = useState([])
+  const [isLoadingStats, setIsLoadingStats] = useState(true)
+  
+  // Form state
   const [isbn, setIsbn] = useState("")
   const [bookNumber, setBookNumber] = useState("")
   const [callNumber, setCallNumber] = useState("")
@@ -15,103 +26,80 @@ function AdminDatabasePage() {
   const [bookImage, setBookImage] = useState(null)
   const [bookImageName, setBookImageName] = useState("")
   const [removeSearch, setRemoveSearch] = useState("")
+  const [searchResults, setSearchResults] = useState([])
+  const [isSearching, setIsSearching] = useState(false)
 
-  const allBooks = [
-    {
-      id: 1,
-      title: "Understanding Calculus Second Edition",
-      author: "H. S. Bear",
-      course: "C-MA111",
-      faculty: "Computer and Informational Sciences",
-      isbn: "978-0-471-43307-1",
-      image: "/calculus-textbook-blue-orange.jpg",
-    },
-    {
-      id: 2,
-      title: "Introduction to Algorithms",
-      author: "Thomas H. Cormen",
-      course: "C-CS201",
-      faculty: "Computer and Informational Sciences",
-      isbn: "978-0-262-03384-8",
-      image: "/algorithms-textbook.jpg",
-    },
-    {
-      id: 3,
-      title: "Digital Logic Design",
-      author: "M. Morris Mano",
-      course: "C-CS111",
-      faculty: "Computer and Informational Sciences",
-      isbn: "978-0-13-277420-8",
-      image: "/digital-logic-textbook.jpg",
-    },
-    {
-      id: 4,
-      title: "Engineering Mechanics Statics",
-      author: "J.L. Meriam",
-      course: "E-ME101",
-      faculty: "Engineering",
-      isbn: "978-1-118-80711-0",
-      image: "/engineering-mechanics-textbook.jpg",
-    },
-    {
-      id: 5,
-      title: "Business Intelligence and Analytics",
-      author: "Ramesh Sharda",
-      course: "BI-BA201",
-      faculty: "Business Informatics",
-      isbn: "978-0-13-461759-0",
-      image: "/business-intelligence-textbook.jpg",
-    },
-    {
-      id: 6,
-      title: "Digital Design Principles",
-      author: "David Harris",
-      course: "DA-CS102",
-      faculty: "Digital Arts and Design",
-      isbn: "978-0-12-800056-4",
-      image: "/digital-design-textbook.jpg",
-    },
-  ]
+  useEffect(() => {
+    loadStatistics()
+  }, [])
 
-  const searchResults = removeSearch
-    ? allBooks.filter(
-        (book) => book.title.toLowerCase().includes(removeSearch.toLowerCase()) || book.isbn.includes(removeSearch),
-      )
-    : []
+  const loadStatistics = async () => {
+    try {
+      setIsLoadingStats(true)
+      const [dashStats, borrowed, borrowers] = await Promise.all([
+        getDashboardStats().catch(() => null),
+        getMostBorrowedBooks(10).catch(() => []),
+        getTopBorrowers(10).catch(() => [])
+      ])
+      setStats(dashStats)
+      setMostBorrowed(borrowed)
+      setTopBorrowers(borrowers)
+    } catch (error) {
+      console.error('Failed to load statistics:', error)
+    } finally {
+      setIsLoadingStats(false)
+    }
+  }
 
   const isAddBookFormValid =
     isbn.trim() !== "" &&
-    bookNumber.trim() !== "" &&
-    callNumber.trim() !== "" &&
-    faculty.trim() !== "" &&
-    course.trim() !== "" &&
-    amount.trim() !== "" &&
     title.trim() !== "" &&
     author.trim() !== "" &&
-    bookImage !== null
+    amount.trim() !== "" &&
+    !isNaN(parseInt(amount))
 
-  const handleAddBook = () => {
-    console.log("Adding book:", {
-      isbn,
-      bookNumber,
-      callNumber,
-      faculty,
-      course,
-      amount,
-      title,
-      author,
-      bookImage,
-    })
-    setIsbn("")
-    setBookNumber("")
-    setCallNumber("")
-    setFaculty("")
-    setCourse("")
-    setAmount("")
-    setTitle("")
-    setAuthor("")
-    setBookImage(null)
-    setBookImageName("")
+  const handleAddBook = async () => {
+    try {
+      // Create book
+      const bookData = {
+        isbn,
+        title,
+        author,
+        publisher: "",
+        publication_year: new Date().getFullYear(),
+        book_pic_url: bookImageName || null,
+        call_number: callNumber || null,
+        faculty: faculty || null,
+        course_code: course || null
+      }
+      
+      const newBook = await createBook(bookData)
+      
+      // Create copies if amount specified
+      const numCopies = parseInt(amount)
+      if (numCopies > 0) {
+        await createBulkCopies(newBook.id, numCopies)
+      }
+      
+      toast.success(`Book "${title}" added with ${numCopies} copies!`)
+      
+      // Reset form
+      setIsbn("")
+      setBookNumber("")
+      setCallNumber("")
+      setFaculty("")
+      setCourse("")
+      setAmount("")
+      setTitle("")
+      setAuthor("")
+      setBookImage(null)
+      setBookImageName("")
+      
+      loadStatistics()
+    } catch (error) {
+      console.error('Failed to add book:', error)
+      toast.error(error.message || 'Failed to add book')
+    }
   }
 
   const handleImageUpload = (e) => {
@@ -122,14 +110,81 @@ function AdminDatabasePage() {
     }
   }
 
-  const handleRemoveBook = (bookId) => {
-    console.log("Removing book with ID:", bookId)
+  const handleRemoveBook = async (bookId) => {
+    if (!confirm('Are you sure you want to delete this book and all its copies?')) {
+      return
+    }
+    
+    try {
+      await deleteBook(bookId)
+      toast.success('Book removed successfully')
+      setSearchResults(searchResults.filter(b => b.id !== bookId))
+      loadStatistics()
+    } catch (error) {
+      console.error('Failed to remove book:', error)
+      toast.error(error.message || 'Failed to remove book')
+    }
   }
 
   return (
     <div className="adminDatabaseContainer">
       <div className="adminDatabaseHeader">
-        <h1 className="adminDatabaseTitle">Database</h1>
+        <h1 className="adminDatabaseTitle">Database & Statistics</h1>
+      </div>
+
+      {/* Statistics Dashboard */}
+      <div className="adminDatabaseSection">
+        <h2 className="adminDatabaseSectionTitle">Dashboard Statistics</h2>
+        {isLoadingStats ? (
+          <p style={{ padding: '20px', textAlign: 'center' }}>Loading statistics...</p>
+        ) : stats ? (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '20px', marginBottom: '30px' }}>
+            <div style={{ padding: '20px', background: '#f5f5f5', borderRadius: '8px' }}>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>Total Books</h3>
+              <p style={{ margin: 0, fontSize: '32px', fontWeight: 'bold' }}>{stats.total_books || 0}</p>
+            </div>
+            <div style={{ padding: '20px', background: '#f5f5f5', borderRadius: '8px' }}>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>Total Copies</h3>
+              <p style={{ margin: 0, fontSize: '32px', fontWeight: 'bold' }}>{stats.total_copies || 0}</p>
+            </div>
+            <div style={{ padding: '20px', background: '#f5f5f5', borderRadius: '8px' }}>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>Active Loans</h3>
+              <p style={{ margin: 0, fontSize: '32px', fontWeight: 'bold' }}>{stats.active_loans || 0}</p>
+            </div>
+            <div style={{ padding: '20px', background: '#f5f5f5', borderRadius: '8px' }}>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>Total Users</h3>
+              <p style={{ margin: 0, fontSize: '32px', fontWeight: 'bold' }}>{stats.total_users || 0}</p>
+            </div>
+            <div style={{ padding: '20px', background: '#f5f5f5', borderRadius: '8px' }}>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>Overdue Loans</h3>
+              <p style={{ margin: 0, fontSize: '32px', fontWeight: 'bold', color: '#d32f2f' }}>{stats.overdue_loans || 0}</p>
+            </div>
+            <div style={{ padding: '20px', background: '#f5f5f5', borderRadius: '8px' }}>
+              <h3 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#666' }}>Pending Requests</h3>
+              <p style={{ margin: 0, fontSize: '32px', fontWeight: 'bold', color: '#ff9800' }}>{stats.pending_requests || 0}</p>
+            </div>
+          </div>
+        ) : (
+          <p style={{ padding: '20px', textAlign: 'center', color: '#999' }}>No statistics available</p>
+        )}
+
+        {mostBorrowed.length > 0 && (
+          <>
+            <h3 style={{ marginTop: '40px', marginBottom: '15px' }}>Most Borrowed Books</h3>
+            <div style={{ display: 'grid', gap: '10px' }}>
+              {mostBorrowed.slice(0, 5).map((book, index) => (
+                <div key={book.book_id} style={{ padding: '15px', background: '#f9f9f9', borderRadius: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div>
+                    <span style={{ fontWeight: 'bold', marginRight: '10px' }}>#{index + 1}</span>
+                    <span style={{ fontSize: '16px' }}>{book.title}</span>
+                    <span style={{ marginLeft: '10px', color: '#666', fontSize: '14px' }}>by {book.author}</span>
+                  </div>
+                  <span style={{ fontSize: '18px', fontWeight: 'bold', color: '#1976d2' }}>{book.borrow_count} loans</span>
+                </div>
+              ))}
+            </div>
+          </>
+        )}
       </div>
 
       <div className="adminDatabaseSection">

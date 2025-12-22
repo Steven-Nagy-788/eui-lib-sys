@@ -1,7 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
+import { getUserFromToken, logout as authLogout } from "./api/authService"
 import LoginPage from "./pages/LoginPage"
 import PatronBooksPage from "./pages/PatronBooksPage"
 import PatronBookbagPage from "./pages/PatronBookbagPage"
@@ -19,12 +20,28 @@ import AdminLayout from "./components/AdminLayout"
 function App() {
   const [currentUser, setCurrentUser] = useState(null)
 
-  const handleLogin = (user) => {
+  // Check for existing auth token on mount
+  useEffect(() => {
+    const user = getUserFromToken()
+    if (user) {
+      setCurrentUser(user)
+    }
+  }, [])
+
+  const handleLogin = () => {
+    // Get user from token after login
+    const user = getUserFromToken()
     setCurrentUser(user)
   }
 
   const handleLogout = () => {
+    authLogout()
     setCurrentUser(null)
+  }
+
+  // Helper to check if user is a patron (student, professor, or ta)
+  const isPatron = (role) => {
+    return role === "student" || role === "professor" || role === "ta"
   }
 
   return (
@@ -45,7 +62,7 @@ function App() {
         <Route
           path="/patron/*"
           element={
-            currentUser && currentUser.role === "patron" ? (
+            currentUser && isPatron(currentUser.role) ? (
               <PatronLayout user={currentUser} onLogout={handleLogout} />
             ) : (
               <Navigate to="/" replace />

@@ -177,7 +177,7 @@ function AdminBooksPage() {
             {filteredAndSortedBooks.map((book) => (
               <div key={book.id} className="adminBookCard">
                 <img 
-                  src={book.cover_image || "/placeholder.svg"} 
+                  src={book.book_pic_url || "/placeholder.svg"} 
                   alt={book.title} 
                   className="adminBookImage"
                   onError={(e) => { e.target.src = "/placeholder.svg" }}

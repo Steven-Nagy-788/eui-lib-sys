@@ -105,7 +105,7 @@ function AdminLayout({ user, onLogout }) {
             عربي
           </button>
           <div className="userProfile" onClick={handleProfileClick}>
-            <span className="userName">{user?.name || "Admin Full Name"}</span>
+            <span className="userName">{user?.full_name || "Admin Full Name"}</span>
             <div className="userAvatar">
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                 <path

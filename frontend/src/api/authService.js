@@ -31,7 +31,7 @@ const decodeJWT = (token) => {
  * Login user with email and password
  * @param {string} email - User email
  * @param {string} password - User password
- * @returns {Promise<{user: Object, token: string}>} User data and auth token
+ * @returns {Promise<{token: string}>} Auth token
  */
 export const login = async (email, password) => {
   try {
@@ -40,59 +40,60 @@ export const login = async (email, password) => {
       password,
     });
     
-    const { access_token, token_type } = response.data;
+    const { access_token } = response.data;
     
-    // Store token first so it's available for subsequent requests
+    // Only store token - no user data in localStorage for security
     localStorage.setItem('auth_token', access_token);
     
-    // Decode token to get user_id
+    // Verify token is valid
     const payload = decodeJWT(access_token);
     if (!payload || !payload.id) {
       throw new Error('Invalid token: missing user ID');
     }
     
-    // Fetch user profile using the user_id from token
-    const userId = payload.id;
-    const userResponse = await getUserProfile(userId);
-    localStorage.setItem('user', JSON.stringify(userResponse));
-    
     return {
-      user: userResponse,
       token: access_token,
     };
   } catch (error) {
     console.error('Login error:', error);
-    // Clean up on error
     localStorage.removeItem('auth_token');
-    localStorage.removeItem('user');
     throw error;
   }
 };
 
 /**
- * Get user profile by user ID
- * @param {number} userId - User ID (optional, will use stored user if not provided)
+ * Get user data from JWT token
+ * @returns {Object|null} User data from token or null if not authenticated
+ */
+export const getUserFromToken = () => {
+  const token = getToken();
+  if (!token) return null;
+  
+  const payload = decodeJWT(token);
+  if (!payload) return null;
+  
+  return {
+    id: payload.id,
+    email: payload.email,
+    role: payload.role,
+    university_id: payload.uniId,
+  };
+};
+
+/**
+ * Get user profile by user ID from API
+ * @param {string} userId - User ID (optional, will use token user if not provided)
  * @returns {Promise<Object>} User profile data
  */
 export const getUserProfile = async (userId = null) => {
   try {
-    // If no userId provided, try to get from stored user or token
+    // If no userId provided, get from token
     if (!userId) {
-      const storedUser = localStorage.getItem('user');
-      if (storedUser) {
-        const user = JSON.parse(storedUser);
-        userId = user.id;
-      } else {
-        const token = localStorage.getItem('auth_token');
-        if (token) {
-          const payload = decodeJWT(token);
-          userId = payload?.id;
-        }
+      const tokenUser = getUserFromToken();
+      if (!tokenUser) {
+        throw new Error('Not authenticated');
       }
-    }
-    
-    if (!userId) {
-      throw new Error('No user ID available');
+      userId = tokenUser.id;
     }
     
     // Fetch user from API
@@ -100,7 +101,6 @@ export const getUserProfile = async (userId = null) => {
     return response.data;
   } catch (error) {
     console.error('Get profile error:', error);
-    throw error;
   }
 };
 
@@ -130,11 +130,11 @@ export const getToken = () => {
 
 /**
  * Get stored user data
+ * @retcurrent user data from token
  * @returns {Object|null} User data or null
  */
 export const getCurrentUser = () => {
-  const user = localStorage.getItem('user');
-  return user ? JSON.parse(user) : null;
+  return getUserFromToken();
 };
 
 export default {

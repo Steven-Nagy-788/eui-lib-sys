@@ -1,6 +1,8 @@
 "use client"
 
-import { useState, useMemo, useEffect, useRef } from "react"
+import { useState, useMemo, useEffect, useRef, useCallback } from "react"
+import { getUsers, searchUsers, clearInfractions, addToBlacklist, removeFromBlacklist } from "../api/usersService"
+import toast from "../utils/toast"
 import "../assets/AdminPages.css"
 
 const mockPatrons = [
@@ -39,72 +41,108 @@ const mockPatrons = [
   },
 ]
 
-function PatronCard({ patron, expandedId, onToggle }) {
+function PatronCard({ patron, expandedId, onToggle, onUpdate }) {
   const [infractions, setInfractions] = useState("")
   const [loanPeriod, setLoanPeriod] = useState("")
-  const [isBlacklisted, setIsBlacklisted] = useState(patron.blacklisted)
+  const [isBlacklisted, setIsBlacklisted] = useState(patron.is_blacklisted || false)
+  const [isLoading, setIsLoading] = useState(false)
   const expanded = expandedId === patron.id
   const cardRef = useRef(null)
 
   const getInitials = (name) => {
+    if (!name) return '?'
     return name
       .split(" ")
       .map((n) => n[0])
       .join("")
+      .toUpperCase()
   }
 
   const handleToggle = () => {
     onToggle(expanded ? null : patron.id)
   }
 
-  const handleRemoveInfractions = () => {
-    console.log("Removing infractions:", infractions)
-    setInfractions("")
-    setLoanPeriod("")
+  const handleRemoveInfractions = async () => {
+    if (!infractions || parseInt(infractions) <= 0) {
+      toast.warning('Please enter a valid number of infractions to remove')
+      return
+    }
+    
+    try {
+      setIsLoading(true)
+      await clearInfractions(patron.id, parseInt(infractions))
+      toast.success('Infractions cleared successfully')
+      setInfractions("")
+      if (onUpdate) onUpdate()
+    } catch (error) {
+      console.error('Failed to clear infractions:', error)
+      toast.error(error.message || 'Failed to clear infractions')
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const handleBlacklist = () => {
-    setIsBlacklisted(!isBlacklisted)
-    setInfractions("")
-    setLoanPeriod("")
+  const handleBlacklist = async () => {
+    const action = isBlacklisted ? 'whitelist' : 'blacklist'
+    const reason = isBlacklisted ? '' : prompt('Enter reason for blacklisting:')
+    
+    if (!isBlacklisted && !reason) {
+      return // User cancelled
+    }
+    
+    try {
+      setIsLoading(true)
+      if (isBlacklisted) {
+        await removeFromBlacklist(patron.id)
+        toast.success('User whitelisted successfully')
+      } else {
+        await addToBlacklist(patron.id, reason)
+        toast.success('User blacklisted successfully')
+      }
+      setIsBlacklisted(!isBlacklisted)
+      setInfractions("")
+      setLoanPeriod("")
+      if (onUpdate) onUpdate()
+    } catch (error) {
+      console.error(`Failed to ${action} user:`, error)
+      toast.error(error.message || `Failed to ${action} user`)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
     <div className="patronCard" ref={cardRef}>
       <div className="patronCardHeader">
-        <div className="patronAvatar">{getInitials(patron.name)}</div>
+        <div className="patronAvatar">{getInitials(patron.full_name || patron.email)}</div>
 
         <div className="patronHeaderContent">
           <button onClick={handleToggle} className="patronExpandButton">
             <div className="patronHeaderInfo">
               <div className="patronNameContainer">
-                <h3 className="patronName">{patron.name}</h3>
+                <h3 className="patronName">{patron.full_name || patron.email}</h3>
                 {isBlacklisted && <span className="patronBlacklistIndicator" />}
               </div>
-              <p className="patronType">{patron.type} ID</p>
+              <p className="patronType">{patron.university_id || patron.id}</p>
             </div>
             <span className="patronExpandIcon">{expanded ? "▲" : "▼"}</span>
           </button>
 
           <div className="patronBasicInfo">
             <div className="patronBasicInfoRow">
-              <span className="patronBasicInfoLabel">Faculty:</span>
-              <p className="patronBasicInfoValue">{patron.faculty}</p>
-              {patron.year && (
-                <>
-                  <span className="patronBasicInfoSeparator">|</span>
-                  <span className="patronBasicInfoLabel">Year:</span>
-                  <p className="patronBasicInfoValue">{patron.year}</p>
-                </>
-              )}
+              <span className="patronBasicInfoLabel">Email:</span>
+              <p className="patronBasicInfoValue">{patron.email}</p>
+              <span className="patronBasicInfoSeparator">|</span>
+              <span className="patronBasicInfoLabel">Role:</span>
+              <p className="patronBasicInfoValue">{patron.role}</p>
             </div>
             <div className="patronBasicInfoRow">
-              <span className="patronBasicInfoLabel">Books Currently Owned:</span>
-              <span className="patronBasicInfoValue">{patron.booksOwned}</span>
-              <span className="patronBasicInfoLabel">Books Previously Owned:</span>
-              <span className="patronBasicInfoValue">{patron.booksBorrowed}</span>
+              <span className="patronBasicInfoLabel">Active Loans:</span>
+              <span className="patronBasicInfoValue">{patron.active_loans_count || 0}</span>
+              <span className="patronBasicInfoLabel">Total Loans:</span>
+              <span className="patronBasicInfoValue">{patron.total_loans_count || 0}</span>
               <span className="patronBasicInfoLabel">Infractions:</span>
-              <span className="patronBasicInfoValue">{patron.infractions}</span>
+              <span className="patronBasicInfoValue">{patron.infractions || 0}</span>
             </div>
           </div>
         </div>
@@ -122,8 +160,8 @@ function PatronCard({ patron, expandedId, onToggle }) {
                 onChange={(e) => setInfractions(e.target.value)}
                 className="patronInput"
               />
-              <button onClick={handleRemoveInfractions} className="patronEnterButton">
-                Enter
+              <button onClick={handleRemoveInfractions} className="patronEnterButton" disabled={isLoading}>
+                {isLoading ? 'Processing...' : 'Enter'}
               </button>
             </div>
 
@@ -135,12 +173,15 @@ function PatronCard({ patron, expandedId, onToggle }) {
                 value={loanPeriod}
                 onChange={(e) => setLoanPeriod(e.target.value)}
                 className="patronInput"
+                disabled={true}
+                title="Feature coming soon"
               />
               <button
                 onClick={handleBlacklist}
                 className={isBlacklisted ? "patronWhitelistButton" : "patronBlacklistButton"}
+                disabled={isLoading}
               >
-                {isBlacklisted ? "Whitelist" : "Blacklist"}
+                {isLoading ? 'Processing...' : (isBlacklisted ? "Whitelist" : "Blacklist")}
               </button>
             </div>
           </div>
@@ -155,7 +196,11 @@ function AdminPatronsPage() {
   const [faculty, setFaculty] = useState("all")
   const [sortBy, setSortBy] = useState("az")
   const [expandedId, setExpandedId] = useState(null)
+  const [users, setUsers] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
   const containerRef = useRef(null)
+  const searchTimeoutRef = useRef(null)
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -170,29 +215,72 @@ function AdminPatronsPage() {
     }
   }, [])
 
-  const filteredAndSortedPatrons = useMemo(() => {
-    let filtered = [...mockPatrons]
+  const loadUsers = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError("")
+      const usersData = await getUsers()
+      setUsers(usersData)
+    } catch (err) {
+      console.error('Failed to load users:', err)
+      setError(err.message || 'Failed to load patrons')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
 
-    if (searchQuery) {
-      filtered = filtered.filter(
-        (patron) =>
-          patron.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          patron.id.toLowerCase().includes(searchQuery.toLowerCase()),
-      )
+  useEffect(() => {
+    loadUsers()
+  }, [])
+
+  // Debounced search
+  useEffect(() => {
+    if (searchTimeoutRef.current) {
+      clearTimeout(searchTimeoutRef.current)
     }
 
+    if (searchQuery.trim()) {
+      searchTimeoutRef.current = setTimeout(async () => {
+        try {
+          setIsLoading(true)
+          const results = await searchUsers(searchQuery)
+          setUsers(results)
+        } catch (err) {
+          console.error('Search failed:', err)
+          setError(err.message || 'Search failed')
+        } finally {
+          setIsLoading(false)
+        }
+      }, 500)
+    } else {
+      loadUsers()
+    }
+
+    return () => {
+      if (searchTimeoutRef.current) {
+        clearTimeout(searchTimeoutRef.current)
+      }
+    }
+  }, [searchQuery, loadUsers])
+
+  const filteredAndSortedPatrons = useMemo(() => {
+    let filtered = [...users]
+
+    // Filter by role (exclude admins from patron list)
+    filtered = filtered.filter(user => user.role !== 'admin')
+
     if (faculty !== "all") {
-      filtered = filtered.filter((patron) => patron.faculty.toLowerCase().includes(faculty.toLowerCase()))
+      filtered = filtered.filter((patron) => patron.role === faculty)
     }
 
     if (sortBy === "az") {
-      filtered.sort((a, b) => a.name.localeCompare(b.name))
+      filtered.sort((a, b) => (a.full_name || a.email).localeCompare(b.full_name || b.email))
     } else if (sortBy === "za") {
-      filtered.sort((a, b) => b.name.localeCompare(a.name))
+      filtered.sort((a, b) => (b.full_name || b.email).localeCompare(a.full_name || a.email))
     }
 
     return filtered
-  }, [searchQuery, faculty, sortBy])
+  }, [users, faculty, sortBy])
 
   return (
     <div className="adminPatronsContainer" ref={containerRef}>
@@ -201,11 +289,10 @@ function AdminPatronsPage() {
 
         <div className="adminPatronsControls">
           <select className="adminPatronsSelect" value={faculty} onChange={(e) => setFaculty(e.target.value)}>
-            <option value="all">All Faculties</option>
-            <option value="Computer and Informational Sciences">Computer and Informational Sciences</option>
-            <option value="Engineering">Engineering</option>
-            <option value="Business Informatics">Business Informatics</option>
-            <option value="Digital Arts and Design">Digital Arts and Design</option>
+            <option value="all">All Roles</option>
+            <option value="student">Students</option>
+            <option value="professor">Professors</option>
+            <option value="ta">Teaching Assistants</option>
           </select>
 
           <select className="adminPatronsSelect" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
@@ -236,11 +323,27 @@ function AdminPatronsPage() {
       </div>
 
       <div className="adminPatronsContent">
-        <div className="adminPatronsList">
-          {filteredAndSortedPatrons.map((patron) => (
-            <PatronCard key={patron.id} patron={patron} expandedId={expandedId} onToggle={setExpandedId} />
-          ))}
-        </div>
+        {error && (
+          <div style={{ padding: '20px', color: 'red', textAlign: 'center' }}>
+            {error}
+            <button onClick={loadUsers} style={{ marginLeft: '10px' }}>Retry</button>
+          </div>
+        )}
+        {isLoading ? (
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <p>Loading patrons...</p>
+          </div>
+        ) : filteredAndSortedPatrons.length === 0 ? (
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <p>No patrons found</p>
+          </div>
+        ) : (
+          <div className="adminPatronsList">
+            {filteredAndSortedPatrons.map((patron) => (
+              <PatronCard key={patron.id} patron={patron} expandedId={expandedId} onToggle={setExpandedId} onUpdate={loadUsers} />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )

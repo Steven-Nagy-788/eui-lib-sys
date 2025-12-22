@@ -1,6 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useMemo } from "react"
+import { getBooks, searchBooks } from "../api/booksService"
+import { getCopiesByBook } from "../api/bookCopiesService"
+import { createLoanRequest } from "../api/loansService"
+import { getUserFromToken } from "../api/authService"
+import toast from "../utils/toast"
 import "../assets/PatronPages.css"
 
 function PatronBooksPage() {
@@ -8,99 +13,104 @@ function PatronBooksPage() {
   const [sortOrder, setSortOrder] = useState("a-z")
   const [facultyFilter, setFacultyFilter] = useState("all")
   const [selectedBook, setSelectedBook] = useState(null)
-  const [reservationDays, setReservationDays] = useState("")
+  const [books, setBooks] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
+  const [isReserving, setIsReserving] = useState(false)
+  const [selectedCopyId, setSelectedCopyId] = useState(null)
 
-  const books = [
-    {
-      id: 1,
-      title: "Understanding Calculus Second Edition",
-      author: "H. S. Bear",
-      course: "C-MA111",
-      publisher: "Wiley-IEEE Press",
-      isbn: "978-0-471-43307-1",
-      available: 3,
-      total: 5,
-      image: "/calculus-textbook-blue-orange.jpg",
-      faculty: "Computer and Informational Sciences",
-      year: "2015",
-    },
-    {
-      id: 2,
-      title: "Introduction to Algorithms",
-      author: "Thomas H. Cormen",
-      course: "C-CS201",
-      publisher: "MIT Press",
-      isbn: "978-0-262-03384-8",
-      available: 5,
-      total: 8,
-      image: "/algorithms-textbook.jpg",
-      faculty: "Computer and Informational Sciences",
-      year: "2009",
-    },
-    {
-      id: 3,
-      title: "Digital Logic Design",
-      author: "M. Morris Mano",
-      course: "C-CE102",
-      publisher: "Pearson",
-      isbn: "978-0-13-277420-8",
-      available: 2,
-      total: 4,
-      image: "/digital-logic-textbook.jpg",
-      faculty: "Computer and Informational Sciences",
-      year: "2017",
-    },
-    {
-      id: 4,
-      title: "Engineering Mechanics Statics",
-      author: "J.L. Meriam",
-      course: "E-ME101",
-      publisher: "Wiley",
-      isbn: "978-1-118-80711-0",
-      available: 4,
-      total: 7,
-      image: "/engineering-mechanics-textbook.jpg",
-      faculty: "Engineering",
-      year: "2018",
-    },
-    {
-      id: 5,
-      title: "Business Intelligence and Analytics",
-      author: "Ramesh Sharda",
-      course: "BI-BA201",
-      publisher: "Pearson",
-      isbn: "978-0-13-461759-0",
-      available: 6,
-      total: 10,
-      image: "/business-intelligence-textbook.jpg",
-      faculty: "Business Informatics",
-      year: "2020",
-    },
-    {
-      id: 6,
-      title: "Digital Design Principles",
-      author: "David Harris",
-      course: "DA-CS102",
-      publisher: "Morgan Kaufmann",
-      isbn: "978-0-12-800056-4",
-      available: 2,
-      total: 5,
-      image: "/digital-design-textbook.jpg",
-      faculty: "Digital Arts and Design",
-      year: "2019",
-    },
-  ]
+  const currentUser = getUserFromToken()
 
-  const filteredBooks = books
-    .filter((book) => {
-      const matchesSearch =
-        book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        book.course.toLowerCase().includes(searchQuery.toLowerCase())
-      const matchesFaculty = facultyFilter === "all" || book.faculty === facultyFilter
-      return matchesSearch && matchesFaculty
-    })
-    .sort((a, b) => {
+  useEffect(() => {
+    loadBooks()
+  }, [])
+
+  const loadBooks = async () => {
+    try {
+      setIsLoading(true)
+      setError("")
+      const data = await getBooks(0, 1000)
+      
+      // Fetch available copies for each book
+      const booksWithAvailability = await Promise.all(
+        data.map(async (book) => {
+          try {
+            const copies = await getCopiesByBook(book.id, true)
+            return {
+              ...book,
+              available: copies.length,
+              copies: copies,
+            }
+          } catch (err) {
+            return {
+              ...book,
+              available: 0,
+              copies: [],
+            }
+          }
+        })
+      )
+      
+      setBooks(booksWithAvailability)
+    } catch (err) {
+      console.error('Failed to load books:', err)
+      setError(err.message || 'Failed to load books')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Handle search with debouncing
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      loadBooks()
+      return
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setIsLoading(true)
+        const data = await searchBooks(searchQuery)
+        
+        const booksWithAvailability = await Promise.all(
+          data.map(async (book) => {
+            try {
+              const copies = await getCopiesByBook(book.id, true)
+              return {
+                ...book,
+                available: copies.length,
+                copies: copies,
+              }
+            } catch (err) {
+              return {
+                ...book,
+                available: 0,
+                copies: [],
+              }
+            }
+          })
+        )
+        
+        setBooks(booksWithAvailability)
+      } catch (err) {
+        console.error('Search failed:', err)
+        setError(err.message || 'Search failed')
+      } finally {
+        setIsLoading(false)
+      }
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery])
+
+  const filteredBooks = useMemo(() => {
+    let filtered = [...books]
+
+    if (facultyFilter !== "all") {
+      // Note: Faculty filtering would require course data integration
+    }
+
+    filtered.sort((a, b) => {
       if (sortOrder === "a-z") {
         return a.title.localeCompare(b.title)
       } else {
@@ -108,31 +118,37 @@ function PatronBooksPage() {
       }
     })
 
-  const handleReserve = (book) => {
-    setSelectedBook(book)
-    setReservationDays("")
-  }
+    return filtered
+  }, [books, sortOrder, facultyFilter])
 
-  const handleConfirmReservation = () => {
-    if (!reservationDays || reservationDays <= 0) {
-      alert("Please enter a valid number of days")
+  const handleReserve = (book) => {
+    if (book.available === 0) {
+      toast.error('No copies available')
       return
     }
-    alert(`Reservation confirmed for ${selectedBook.title} for ${reservationDays} days`)
-    setSelectedBook(null)
-    setReservationDays("")
+    setSelectedBook(book)
+    setSelectedCopyId(book.copies[0]?.id || null)
   }
 
-  const getReserveDate = () => {
-    const today = new Date()
-    return today.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" })
-  }
+  const handleConfirmReservation = async () => {
+    if (!selectedCopyId) {
+      toast.error('No copy selected')
+      return
+    }
 
-  const getReturnDate = () => {
-    if (!reservationDays || reservationDays <= 0) return "--/--/--"
-    const today = new Date()
-    const returnDate = new Date(today.getTime() + reservationDays * 24 * 60 * 60 * 1000)
-    return returnDate.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" })
+    try {
+      setIsReserving(true)
+      await createLoanRequest(selectedCopyId)
+      toast.success(`Reservation submitted for ${selectedBook.title}. Awaiting approval.`)
+      setSelectedBook(null)
+      setSelectedCopyId(null)
+      loadBooks()
+    } catch (err) {
+      console.error('Reservation failed:', err)
+      toast.error(err.message || 'Failed to create reservation request')
+    } finally {
+      setIsReserving(false)
+    }
   }
 
   return (
@@ -178,83 +194,89 @@ function PatronBooksPage() {
       </div>
 
       <div className="contentCard">
-        <div className="scrollableContent">
-          {filteredBooks.map((book) => (
-            <div key={book.id} className="patronBookCard">
-              <img src={book.image || "/placeholder.svg"} alt={book.title} className="patronBookImage" />
+        {error && (
+          <div className="errorMessage" style={{ padding: '20px', color: 'red', textAlign: 'center' }}>
+            {error}
+            <button onClick={loadBooks} style={{ marginLeft: '10px' }}>Retry</button>
+          </div>
+        )}
 
-              <div className="patronBookDetails">
-                <h3 className="patronBookTitle">{book.title}</h3>
-                <p className="patronBookAuthor">{book.author}</p>
+        {isLoading ? (
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <p>Loading books...</p>
+          </div>
+        ) : filteredBooks.length === 0 ? (
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <p>No books found</p>
+          </div>
+        ) : (
+          <div className="scrollableContent">
+            {filteredBooks.map((book) => (
+              <div key={book.id} className="patronBookCard">
+                <img src={book.book_pic_url || "/placeholder.svg"} alt={book.title} className="patronBookImage" 
+                     onError={(e) => { e.target.src = "/placeholder.svg" }} />
 
-                <div className="patronBookInfo">
-                  <div className="patronBookInfoGrid">
-                    <div className="patronBookInfoItem">
-                      <span className="patronBookInfoLabel">Course:</span>
-                      <p className="patronBookInfoValue">{book.course}</p>
-                    </div>
-                    <div className="patronBookInfoItem">
-                      <span className="patronBookInfoLabel">Publisher:</span>
-                      <p className="patronBookInfoValue">{book.publisher}</p>
-                    </div>
-                    <div className="patronBookInfoItem">
-                      <span className="patronBookInfoLabel">ISBN:</span>
-                      <p className="patronBookInfoValue">{book.isbn}</p>
-                    </div>
-                  </div>
+                <div className="patronBookDetails">
+                  <h3 className="patronBookTitle">{book.title}</h3>
+                  <p className="patronBookAuthor">{book.author}</p>
 
-                  <div className="patronBookAvailability">
-                    <span className="patronBookAvailableBadge">Available</span>
-                    <span className="patronBookAvailableCount">{book.available}</span>
-                    <button
-                      onClick={() => handleReserve(book)}
-                      className="patronReserveButton"
-                      disabled={book.available === 0}
-                    >
-                      Reserve
-                    </button>
+                  <div className="patronBookInfo">
+                    <div className="patronBookInfoGrid">
+                      <div className="patronBookInfoItem">
+                        <span className="patronBookInfoLabel">Publisher:</span>
+                        <p className="patronBookInfoValue">{book.publisher || 'N/A'}</p>
+                      </div>
+                      <div className="patronBookInfoItem">
+                        <span className="patronBookInfoLabel">ISBN:</span>
+                        <p className="patronBookInfoValue">{book.isbn}</p>
+                      </div>
+                    </div>
+
+                    <div className="patronBookAvailability">
+                      <span className="patronBookAvailableBadge">Available</span>
+                      <span className="patronBookAvailableCount">{book.available}</span>
+                      <button
+                        onClick={() => handleReserve(book)}
+                        className="patronReserveButton"
+                        disabled={book.available === 0}
+                      >
+                        Reserve
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
       {selectedBook && (
         <div className="reservationModalOverlay" onClick={() => setSelectedBook(null)}>
           <div className="reservationModalContent" onClick={(e) => e.stopPropagation()}>
-            <h2 className="reservationModalTitle">Reserving:</h2>
+            <h2 className="reservationModalTitle">Confirm Reservation</h2>
             <h3 className="reservationModalBookTitle">{selectedBook.title}</h3>
 
             <div className="reservationModalBody">
-              <div className="reservationInputGroup">
-                <label className="reservationLabel">Days:</label>
-                <input
-                  type="number"
-                  min="1"
-                  value={reservationDays}
-                  onChange={(e) => setReservationDays(e.target.value)}
-                  className="reservationInput"
-                  placeholder="Enter days"
-                />
-              </div>
-
-              <div className="reservationDatesGroup">
-                <div className="reservationDateItem">
-                  <span className="reservationDateLabel">Reserve Date:</span>
-                  <span className="reservationDateValue">{getReserveDate()}</span>
-                </div>
-                <div className="reservationDateItem">
-                  <span className="reservationDateLabel">Return Date:</span>
-                  <span className="reservationDateValue">{getReturnDate()}</span>
-                </div>
-              </div>
+              <p>
+                <strong>Author:</strong> {selectedBook.author}
+              </p>
+              <p>
+                <strong>Available Copies:</strong> {selectedBook.available}
+              </p>
+              <p style={{ marginTop: '15px', fontSize: '14px', color: '#666' }}>
+                Your reservation request will be sent to the admin for approval.
+              </p>
             </div>
 
-            <button onClick={handleConfirmReservation} className="reservationSubmitButton">
-              Submit Request
-            </button>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+              <button onClick={() => setSelectedBook(null)} disabled={isReserving} style={{ flex: 1 }}>
+                Cancel
+              </button>
+              <button onClick={handleConfirmReservation} disabled={isReserving} className="reservationSubmitButton" style={{ flex: 1 }}>
+                {isReserving ? 'Requesting...' : 'Submit Request'}
+              </button>
+            </div>
           </div>
         </div>
       )}

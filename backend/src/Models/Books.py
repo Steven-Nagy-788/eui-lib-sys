@@ -18,6 +18,7 @@ class BookBase(BaseModel):
     author: str
     publisher: Optional[str] = None
     publication_year: Optional[int] = None
+    book_pic_url: Optional[str] = None
     marc_data: Optional[Dict[str, Any]] = None # JSONB
 
 class BookCreate(BookBase):

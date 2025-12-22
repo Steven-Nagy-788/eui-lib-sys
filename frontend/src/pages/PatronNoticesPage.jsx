@@ -1,49 +1,86 @@
-"use client"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { getUserLoans } from "../api/loansService"
+import { getBook } from "../api/booksService"
+import { getUserFromToken } from "../api/authService"
 import "../assets/PatronPages.css"
 
 function PatronNoticesPage() {
   const [searchQuery, setSearchQuery] = useState("")
+  const [notices, setNotices] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
 
-  const notices = [
-    {
-      id: 1,
-      type: "overdue",
-      title: "Overdue Warning",
-      message:
-        "Your book 'Understanding Calculus Second Edition' is overdue. You have been given an infraction. Please return the book immediately before corrective actions are taken.",
-      bookTitle: "Understanding Calculus Second Edition",
-      date: "12/15/25",
-    },
-    {
-      id: 2,
-      type: "due",
-      title: "Return Notice",
-      message:
-        "Your book 'Understanding Calculus Second Edition' due date has been reached. Please return your book to the library.",
-      bookTitle: "Understanding Calculus Second Edition",
-      date: "12/10/25",
-    },
-    {
-      id: 3,
-      type: "approaching",
-      title: "Due Date Approaching",
-      message:
-        "Your book 'Understanding Calculus Second Edition' is close to its due date 12/10/25. Please start to return your book before the date.",
-      bookTitle: "Understanding Calculus Second Edition",
-      date: "12/07/25",
-    },
-    {
-      id: 4,
-      type: "success",
-      title: "Reserve Successful",
-      message:
-        "Your reserve request for 'Understanding Calculus Second Edition' has been accepted! Please pass by the library to pick up your book.",
-      bookTitle: "Understanding Calculus Second Edition",
-      date: "12/01/25",
-    },
-  ]
+  useEffect(() => {
+    loadNotices()
+  }, [])
+
+  const loadNotices = async () => {
+    try {
+      setIsLoading(true)
+      const currentUser = getUserFromToken()
+      const activeLoans = await getUserLoans(currentUser.id, 'active')
+      const pendingLoans = await getUserLoans(currentUser.id, 'pending')
+      const overdueLoans = await getUserLoans(currentUser.id, 'overdue')
+      
+      const allNotices = []
+      
+      // Overdue notices
+      for (const loan of overdueLoans) {
+        const book = await getBook(loan.book_copy?.book_id)
+        allNotices.push({
+          id: `overdue-${loan.id}`,
+          type: "overdue",
+          title: "Overdue Warning",
+          message: `Your book '${book.title}' is overdue. Please return it immediately to avoid additional infractions.`,
+          bookTitle: book.title,
+          date: new Date(loan.due_date).toLocaleDateString(),
+          loan
+        })
+      }
+      
+      // Active loans approaching due date
+      for (const loan of activeLoans) {
+        const dueDate = new Date(loan.due_date)
+        const today = new Date()
+        const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24))
+        
+        if (daysUntilDue <= 3 && daysUntilDue >= 0) {
+          const book = await getBook(loan.book_copy?.book_id)
+          allNotices.push({
+            id: `approaching-${loan.id}`,
+            type: "approaching",
+            title: "Due Date Approaching",
+            message: `Your book '${book.title}' is due on ${dueDate.toLocaleDateString()}. Please return it soon.`,
+            bookTitle: book.title,
+            date: today.toLocaleDateString(),
+            loan
+          })
+        }
+      }
+      
+      // Pending requests
+      for (const loan of pendingLoans) {
+        const book = await getBook(loan.book_copy?.book_id)
+        allNotices.push({
+          id: `pending-${loan.id}`,
+          type: "info",
+          title: "Request Pending",
+          message: `Your reservation request for '${book.title}' is awaiting admin approval.`,
+          bookTitle: book.title,
+          date: new Date(loan.request_date).toLocaleDateString(),
+          loan
+        })
+      }
+      
+      // Sort by date (newest first)
+      allNotices.sort((a, b) => new Date(b.date) - new Date(a.date))
+      
+      setNotices(allNotices)
+    } catch (error) {
+      console.error('Failed to load notices:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   const filteredNotices = notices.filter((notice) => {
     return (
@@ -63,9 +100,24 @@ function PatronNoticesPage() {
         return "notice-border-yellow"
       case "overdue":
         return "notice-border-red"
+      case "info":
+        return "notice-border-blue"
       default:
         return ""
     }
+  }
+
+  if (isLoading) {
+    return (
+      <div className="pageContent">
+        <div className="pageHeaderCard">
+          <h1>Notices</h1>
+        </div>
+        <div className="contentCard">
+          <p>Loading notices...</p>
+        </div>
+      </div>
+    )
   }
 
   return (

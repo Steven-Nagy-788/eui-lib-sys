@@ -1,61 +1,116 @@
 "use client"
 
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect, useCallback } from "react"
+import { getLoansByStatus, approveLoan, rejectLoan } from "../api/loansService"
+import { getUser } from "../api/usersService"
+import { getBook } from "../api/booksService"
+import toast from "../utils/toast"
 import "../assets/AdminPages.css"
-
-const mockRequests = [
-  {
-    id: 1,
-    studentName: "Student Full Name",
-    studentId: "21-101010",
-    bookTitle: "Understanding Calculus Second Edition",
-    days: 7,
-    reserveDate: "10/12/25",
-    dueDate: "17/12/25",
-  },
-  {
-    id: 2,
-    studentName: "Student Full Name",
-    studentId: "21-101010",
-    bookTitle: "Understanding Calculus Second Edition",
-    days: 14,
-    reserveDate: "10/12/25",
-    dueDate: "24/12/25",
-  },
-  {
-    id: 3,
-    studentName: "Student Full Name",
-    studentId: "21-101010",
-    bookTitle: "Understanding Calculus Second Edition",
-    days: 7,
-    reserveDate: "10/12/25",
-    dueDate: "17/12/25",
-  },
-]
 
 function AdminRequestsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [sortBy, setSortBy] = useState("earliest")
+  const [requests, setRequests] = useState([])
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
+
+  const loadRequests = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      setError("")
+      
+      const pendingLoans = await getLoansByStatus('pending')
+      
+      const requestsWithDetails = await Promise.all(
+        pendingLoans.map(async (loan) => {
+          try {
+            const [user, book] = await Promise.all([
+              getUser(loan.user_id).catch(() => ({ full_name: 'Unknown', email: 'N/A', university_id: 'N/A' })),
+              getBook(loan.book_id).catch(() => ({ title: 'Unknown Book' }))
+            ])
+            return { ...loan, user, book }
+          } catch {
+            return {
+              ...loan,
+              user: { full_name: 'Unknown', email: 'N/A' },
+              book: { title: 'Unknown Book' }
+            }
+          }
+        })
+      )
+      
+      setRequests(requestsWithDetails)
+    } catch (err) {
+      console.error('Failed to load requests:', err)
+      setError(err.message || 'Failed to load pending requests')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    loadRequests()
+  }, [loadRequests])
+
+  const handleApprove = async (loanId) => {
+    try {
+      await approveLoan(loanId)
+      toast.success('Loan request approved successfully')
+      loadRequests()
+    } catch (err) {
+      console.error('Failed to approve loan:', err)
+      toast.error(err.message || 'Failed to approve loan request')
+    }
+  }
+
+  const handleReject = async (loanId) => {
+    const reason = prompt('Enter reason for rejection (optional):')
+    try {
+      await rejectLoan(loanId, reason || undefined)
+      toast.success('Loan request rejected')
+      loadRequests()
+    } catch (err) {
+      console.error('Failed to reject loan:', err)
+      toast.error(err.message || 'Failed to reject loan request')
+    }
+  }
+
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A'
+    const date = new Date(dateString)
+    return date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" })
+  }
+
+  const calculateDays = (startDate, endDate) => {
+    if (!startDate || !endDate) return 0
+    const start = new Date(startDate)
+    const end = new Date(endDate)
+    const diffTime = Math.abs(end - start)
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    return diffDays
+  }
 
   const filteredAndSortedRequests = useMemo(() => {
-    let filtered = [...mockRequests]
+    let filtered = [...requests]
 
     if (searchQuery) {
       filtered = filtered.filter(
         (request) =>
-          request.studentName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-          request.studentId.toLowerCase().includes(searchQuery.toLowerCase()),
+          request.user?.full_name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          request.user?.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          request.user?.university_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          request.book?.title?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     }
 
     if (sortBy === "earliest") {
-      filtered.sort((a, b) => new Date(a.reserveDate) - new Date(b.reserveDate))
+      filtered.sort((a, b) => new Date(a.request_date) - new Date(b.request_date))
     } else if (sortBy === "latest") {
-      filtered.sort((a, b) => new Date(b.reserveDate) - new Date(a.reserveDate))
+      filtered.sort((a, b) => new Date(b.request_date) - new Date(a.request_date))
     }
 
     return filtered
-  }, [searchQuery, sortBy])
+  }, [requests, searchQuery, sortBy])
 
   return (
     <div className="adminRequestsContainer">
@@ -91,49 +146,69 @@ function AdminRequestsPage() {
       </div>
 
       <div className="adminRequestsContent">
-        <div className="adminRequestsList">
-          {filteredAndSortedRequests.map((request) => (
-            <div key={request.id} className="requestCard">
-              <div className="requestCardInfo">
-                <div className="requestInfoRow">
-                  <div className="requestInfoItem">
-                    <span className="requestInfoLabel">Name:</span>
-                    <p className="requestInfoValue">{request.studentName}</p>
+        {error && (
+          <div style={{ padding: '20px', color: 'red', textAlign: 'center' }}>
+            {error}
+            <button onClick={loadRequests} style={{ marginLeft: '10px' }}>Retry</button>
+          </div>
+        )}
+        {isLoading ? (
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <p>Loading pending requests...</p>
+          </div>
+        ) : filteredAndSortedRequests.length === 0 ? (
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <p>No pending requests</p>
+          </div>
+        ) : (
+          <div className="adminRequestsList">
+          {filteredAndSortedRequests.map((request) => {
+            const days = calculateDays(request.request_date, request.due_date)
+            
+            return (
+              <div key={request.id} className="requestCard">
+                <div className="requestCardInfo">
+                  <div className="requestInfoRow">
+                    <div className="requestInfoItem">
+                      <span className="requestInfoLabel">Name:</span>
+                      <p className="requestInfoValue">{request.user?.full_name || request.user?.email || 'Unknown'}</p>
+                    </div>
+                    <div className="requestInfoItem">
+                      <span className="requestInfoLabel">ID:</span>
+                      <p className="requestInfoValue">{request.user?.university_id || 'N/A'}</p>
+                    </div>
                   </div>
+
                   <div className="requestInfoItem">
-                    <span className="requestInfoLabel">ID:</span>
-                    <p className="requestInfoValue">{request.studentId}</p>
+                    <span className="requestInfoLabel">Book:</span>
+                    <p className="requestInfoValue">{request.book?.title || 'Unknown Book'}</p>
+                  </div>
+
+                  <div className="requestInfoRow">
+                    <div className="requestInfoItem">
+                      <span className="requestInfoLabel">Days:</span>
+                      <p className="requestInfoValue">{days}</p>
+                    </div>
+                    <div className="requestInfoItem">
+                      <span className="requestInfoLabel">Reserve Date:</span>
+                      <p className="requestInfoValue">{formatDate(request.request_date)}</p>
+                    </div>
+                    <div className="requestInfoItem">
+                      <span className="requestInfoLabel">Due Date:</span>
+                      <p className="requestInfoValue">{formatDate(request.due_date)}</p>
+                    </div>
                   </div>
                 </div>
 
-                <div className="requestInfoItem">
-                  <span className="requestInfoLabel">Book:</span>
-                  <p className="requestInfoValue">{request.bookTitle}</p>
-                </div>
-
-                <div className="requestInfoRow">
-                  <div className="requestInfoItem">
-                    <span className="requestInfoLabel">Days:</span>
-                    <p className="requestInfoValue">{request.days}</p>
-                  </div>
-                  <div className="requestInfoItem">
-                    <span className="requestInfoLabel">Reserve Date:</span>
-                    <p className="requestInfoValue">{request.reserveDate}</p>
-                  </div>
-                  <div className="requestInfoItem">
-                    <span className="requestInfoLabel">Due Date:</span>
-                    <p className="requestInfoValue">{request.dueDate}</p>
-                  </div>
+                <div className="requestCardButtons">
+                  <button className="requestAcceptButton" onClick={() => handleApprove(request.id)}>Accept</button>
+                  <button className="requestRejectButton" onClick={() => handleReject(request.id)}>Reject</button>
                 </div>
               </div>
-
-              <div className="requestCardButtons">
-                <button className="requestAcceptButton">Accept</button>
-                <button className="requestRejectButton">Reject</button>
-              </div>
-            </div>
-          ))}
-        </div>
+            )
+          })}
+          </div>
+        )}
       </div>
     </div>
   )
