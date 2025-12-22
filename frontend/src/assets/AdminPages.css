@@ -1,0 +1,1272 @@
+.adminContainer {
+  min-height: 100vh;
+  background: #f9fafb;
+}
+
+.adminNavbar {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.navbarContent {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.navbarBrand {
+  display: flex;
+  flex-direction: column;
+}
+
+.navbarTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0;
+}
+
+.navbarSubtitle {
+  font-size: 14px;
+  color: #718096;
+}
+
+/* Adding sidebar logo styling */
+.sidebarLogo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.navbarLinks {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navLink {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #4a5568;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.navLink:hover {
+  background: #f7fafc;
+  color: #2563eb;
+}
+
+.navLinkActive {
+  background: #2563eb;
+  color: white;
+}
+
+.navLinkActive:hover {
+  background: #1d4ed8;
+}
+
+.navbarUser {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.userName {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2d3748;
+}
+
+.logoutButton {
+  width: 100%;
+  padding: 12px 16px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.logoutButton:hover {
+  background: #1d4ed8;
+}
+
+.adminMain {
+  max-width: 1440px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* Admin Books Page */
+.adminBooksContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.adminBooksHeader {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.adminBooksTitle {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.adminBooksControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.adminBooksSelect {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.adminBooksSearchWrapper {
+  position: relative;
+  width: 256px;
+}
+
+.adminBooksSearchInput {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.adminBooksSearchIcon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  color: #6b7280;
+}
+
+.adminBooksContent {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.adminBooksList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.adminBookCard {
+  display: flex;
+  gap: 24px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.adminBookImage {
+  width: 160px;
+  height: 224px;
+  object-fit: cover;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.adminBookDetails {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.adminBookTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2563eb;
+  margin: 0 0 4px 0;
+}
+
+.adminBookAuthor {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 16px 0;
+}
+
+.adminBookInfo {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: auto;
+}
+
+.adminBookInfoGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.adminBookInfoItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.adminBookInfoLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.adminBookInfoValue {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.adminBookAvailability {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.adminBookAvailableBadge {
+  background: #d1fae5;
+  color: #065f46;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.adminBookAvailableCount {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+/* Admin Patrons Page */
+.adminPatronsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.adminPatronsHeader {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.adminPatronsTitle {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.adminPatronsControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.adminPatronsSelect {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.adminPatronsSearchWrapper {
+  position: relative;
+  width: 256px;
+}
+
+.adminPatronsSearchInput {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.adminPatronsSearchIcon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  color: #6b7280;
+}
+
+.adminPatronsContent {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.adminPatronsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.patronCard {
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  /* Remove positioning to allow natural flow */
+  position: relative;
+}
+
+.patronCardHeader {
+  padding: 16px;
+  display: flex;
+  gap: 16px;
+}
+
+.patronAvatar {
+  width: 112px;
+  height: 112px;
+  border-radius: 8px;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 32px;
+  font-weight: bold;
+  color: #6b7280;
+  flex-shrink: 0;
+}
+
+.patronHeaderContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.patronExpandButton {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  text-align: left;
+}
+
+.patronHeaderInfo {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Added container for patron name with blacklist indicator */
+.patronNameContainer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.patronBlacklistIndicator {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #dc2626;
+  flex-shrink: 0;
+}
+/* </CHANGE> */
+
+.patronName {
+  font-size: 24px;
+  font-weight: 600;
+  color: #2563eb;
+  margin: 0;
+}
+
+.patronType {
+  font-size: 16px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.patronExpandIcon {
+  color: #9ca3af;
+  font-size: 20px;
+  flex-shrink: 0;
+}
+
+.patronBasicInfo {
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.patronBasicInfoRow {
+  display: flex;
+  gap: 8px;
+  font-size: 14px;
+  margin-bottom: 8px;
+}
+
+.patronBasicInfoRow:last-child {
+  margin-bottom: 0;
+}
+
+.patronBasicInfoLabel {
+  color: #6b7280;
+}
+
+.patronBasicInfoValue {
+  font-weight: 500;
+  color: #111827;
+  margin: 0;
+}
+
+.patronBasicInfoSeparator {
+  color: #9ca3af;
+}
+
+/* Add smooth animation to expanded section */
+.patronCardExpanded {
+  border-top: 1px solid #e5e7eb;
+  padding: 16px;
+  background: #f9fafb;
+  /* Changed animation to expand naturally downward */
+  overflow: hidden;
+  transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+/* Removed absolute positioning animation */
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    max-height: 0;
+  }
+  to {
+    opacity: 1;
+    max-height: 500px;
+  }
+}
+
+.patronExpandedContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* New horizontal row layout for inputs and buttons */
+.patronExpandedRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.patronExpandedRow .patronInputLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  white-space: nowrap;
+  flex-shrink: 0;
+  min-width: 160px;
+}
+
+.patronExpandedRow .patronInput {
+  flex: 1;
+  max-width: 400px;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.patronExpandedRow .patronEnterButton,
+.patronExpandedRow .patronBlacklistButton,
+.patronExpandedRow .patronWhitelistButton {
+  padding: 8px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  width: 100px;
+}
+
+/* Remove old input group and button styles that are no longer used */
+.patronExpandedInputs {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.patronInputGroup {
+  display: flex;
+  flex-direction: column;
+}
+
+.patronInputLabel {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.patronInput {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.patronExpandedButtons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 128px;
+}
+
+.patronEnterButton {
+  background: #2563eb;
+  color: white;
+}
+
+.patronEnterButton:hover {
+  background: #1d4ed8;
+}
+
+.patronBlacklistButton {
+  background: #dc2626;
+  color: white;
+}
+
+.patronBlacklistButton:hover {
+  background: #b91c1c;
+}
+
+.patronWhitelistButton {
+  background: #d1d5db;
+  color: #374151;
+}
+
+.patronWhitelistButton:hover {
+  background: #9ca3af;
+}
+
+/* Admin Circulation Page */
+.adminCirculationContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.adminCirculationHeader {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.adminCirculationTitle {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.adminCirculationControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.adminCirculationSelect {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.adminCirculationSearchWrapper {
+  position: relative;
+  width: 256px;
+}
+
+.adminCirculationSearchInput {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.adminCirculationSearchIcon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  color: #6b7280;
+}
+
+.adminCirculationContent {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.adminCirculationList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.circulationCard {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.circulationBookImage {
+  width: 128px;
+  height: 176px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.circulationCardContent {
+  flex: 1;
+}
+
+.circulationBookTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2563eb;
+  margin: 0 0 4px 0;
+}
+
+.circulationBookAuthor {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 12px 0;
+}
+
+.circulationDetails {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.circulationPatronInfo {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 16px;
+}
+
+.circulationPatronText {
+  display: flex;
+  flex-direction: column;
+}
+
+.circulationReservedBy {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 4px 0;
+}
+
+.circulationPatronName {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 4px 0;
+}
+
+.circulationPatronId {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.circulationPatronAvatar {
+  width: 64px;
+  height: 64px;
+  border-radius: 8px;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  font-weight: bold;
+  color: #6b7280;
+}
+
+.circulationActions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 16px;
+}
+
+.circulationStatus {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.circulationStatusLabel {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.circulationStatusPending {
+  background: #fbbf24;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.circulationStatusOwned {
+  background: #059669;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.circulationStatusOverdue {
+  background: #dc2626;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.circulationButtons {
+  display: flex;
+  gap: 8px;
+}
+
+.circulationCancelButton {
+  background: transparent;
+  color: #374151;
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.circulationCancelButton:hover {
+  background: #f3f4f6;
+}
+
+.circulationPickedUpButton,
+.circulationReturnedButton {
+  background: #2563eb;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.circulationPickedUpButton:hover,
+.circulationReturnedButton:hover {
+  background: #1d4ed8;
+}
+
+/* Admin Requests Page */
+.adminRequestsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.adminRequestsHeader {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.adminRequestsTitle {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.adminRequestsControls {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.adminRequestsSelect {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.adminRequestsSearchWrapper {
+  position: relative;
+  width: 256px;
+}
+
+.adminRequestsSearchInput {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.adminRequestsSearchIcon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  color: #6b7280;
+}
+
+.adminRequestsContent {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.adminRequestsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.requestCard {
+  position: relative;
+  padding: 20px;
+  padding-right: 160px;
+  background: #f3f4f6;
+  border-radius: 8px;
+}
+
+.requestCardInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.requestInfoRow {
+  display: flex;
+  gap: 64px;
+}
+
+.requestInfoItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.requestInfoLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  margin-bottom: 2px;
+}
+
+.requestInfoValue {
+  font-size: 16px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.requestCardButtons {
+  position: absolute;
+  right: 20px;
+  top: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.requestAcceptButton {
+  background: #059669;
+  color: white;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 112px;
+}
+
+.requestAcceptButton:hover {
+  background: #047857;
+}
+
+.requestRejectButton {
+  background: #dc2626;
+  color: white;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  width: 112px;
+}
+
+.requestRejectButton:hover {
+  background: #b91c1c;
+}
+
+/* Admin Database Page */
+.adminDatabaseContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.adminDatabaseHeader {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.adminDatabaseTitle {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.adminDatabaseSection {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.adminDatabaseSectionTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0 0 16px 0;
+}
+
+.adminDatabaseFormGrid3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.adminDatabaseFormGrid2 {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.adminDatabaseFormGroup {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 16px;
+}
+
+.adminDatabaseLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 4px;
+}
+
+.adminDatabaseInput {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.adminDatabaseFileInputWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.adminDatabaseFileLabel {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  background: white;
+}
+
+.adminDatabaseFileLabel:hover {
+  background: #f9fafb;
+}
+
+.adminDatabaseFileInput {
+  display: none;
+}
+
+.adminDatabaseAddButton {
+  background: #2563eb;
+  color: white;
+  padding: 10px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.adminDatabaseAddButton:hover {
+  background: #1d4ed8;
+}
+
+.adminDatabaseAddButton:disabled {
+  background: #d1d5db;
+  cursor: not-allowed;
+}
+
+.adminDatabaseSearchWrapper {
+  position: relative;
+  max-width: 512px;
+  margin-bottom: 16px;
+}
+
+.adminDatabaseSearchInput {
+  width: 100%;
+  padding: 8px 32px 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.adminDatabaseSearchIcon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  width: 20px;
+  height: 20px;
+  color: #6b7280;
+}
+
+.adminDatabaseBookList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.adminDatabaseBookCard {
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  max-width: 768px;
+}
+
+.adminDatabaseBookImage {
+  width: 96px;
+  height: 128px;
+  object-fit: cover;
+  border-radius: 4px;
+}
+
+.adminDatabaseBookDetails {
+  flex: 1;
+}
+
+.adminDatabaseBookTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2563eb;
+  margin: 0 0 4px 0;
+}
+
+.adminDatabaseBookAuthor {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 8px 0;
+}
+
+.adminDatabaseBookInfo {
+  font-size: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.adminDatabaseBookInfoLabel {
+  font-weight: 500;
+}
+
+.adminDatabaseBookInfoValue {
+  font-size: 14px;
+}
+
+.adminDatabaseBookActions {
+  display: flex;
+  align-items: center;
+}
+
+.adminDatabaseRemoveButton {
+  background: #dc2626;
+  color: white;
+  padding: 8px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.adminDatabaseRemoveButton:hover {
+  background: #b91c1c;
+}
+
+.adminDatabaseNoResults {
+  font-size: 14px;
+  color: #6b7280;
+  margin-top: 16px;
+}
+
+/* Admin Profile Page */
+.adminProfileContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.adminProfileHeader {
+  background: white;
+  border-radius: 8px;
+  padding: 24px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.adminProfileTitle {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.adminProfileContent {
+  background: white;
+  border-radius: 8px;
+  padding: 32px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.adminProfileInner {
+}

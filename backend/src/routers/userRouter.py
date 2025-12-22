@@ -20,8 +20,7 @@ router = APIRouter(
 async def get_users(
     skip: int = 0,
     limit: int = 10,
-    service: UserService = Depends(get_user_service),
-    current_user: dict = Depends(get_current_user)
+    service: UserService = Depends(get_user_service)
 ):
     return await service.RetrieveAllUsers(skip=skip, limit=limit)
 

@@ -1,0 +1,908 @@
+/* Adding navbar styles for PatronLayout */
+.patronContainer {
+  min-height: 100vh;
+  background: #f9fafb;
+}
+
+.patronNavbar {
+  background: white;
+  border-bottom: 1px solid #e5e7eb;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.navbarContent {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 16px 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+
+.navbarBrand {
+  display: flex;
+  flex-direction: column;
+}
+
+.navbarTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0;
+}
+
+.navbarSubtitle {
+  font-size: 14px;
+  color: #718096;
+}
+
+.navbarLinks {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.navLink {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #4a5568;
+  text-decoration: none;
+  transition: all 0.2s;
+}
+
+.navLink:hover {
+  background: #f7fafc;
+  color: #667eea;
+}
+
+.navLinkActive {
+  background: #667eea;
+  color: white;
+}
+
+.navLinkActive:hover {
+  background: #5568d3;
+}
+
+.navbarUser {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.userName {
+  font-size: 14px;
+  font-weight: 500;
+  color: #2d3748;
+}
+
+.patronMain {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 24px;
+}
+
+/* Converted all class names from kebab-case to camelCase */
+/* New layout with left sidebar (20%) and main content (80%) */
+.layoutContainer {
+  display: flex;
+  min-height: 100vh;
+  background: #f5f5f5;
+}
+
+/* Sidebar Navigation */
+.sidebarNav {
+  width: 20%;
+  min-width: 240px;
+  background: white;
+  border-right: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  position: fixed;
+  height: 100vh;
+  left: 0;
+  top: 0;
+}
+
+.sidebarBrand {
+  padding: 24px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* Adding sidebar logo styling */
+.sidebarLogo {
+  width: 32px;
+  height: 32px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.sidebarBrandText {
+  display: flex;
+  flex-direction: column;
+}
+
+.sidebarTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: #2563eb;
+  margin: 0;
+}
+
+.sidebarLinks {
+  flex: 1;
+  padding: 20px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sidebarLink {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 500;
+  color: #6b7280;
+  text-decoration: none;
+  transition: all 0.2s;
+  transform: translateX(0);
+}
+
+.sidebarLink:hover {
+  color: #1e40af;
+  transform: translateX(4px);
+}
+
+.sidebarLink.active {
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.sidebarLink svg {
+  flex-shrink: 0;
+}
+
+.sidebarFooter {
+  padding: 20px;
+  border-top: 1px solid #e5e7eb;
+}
+
+.logoutButton {
+  width: 100%;
+  padding: 12px 16px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.logoutButton:hover {
+  background: #1d4ed8;
+}
+
+/* Main Content Area */
+.mainContent {
+  margin-left: 20%;
+  width: 80%;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Header with translate button and user profile */
+.pageHeader {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 16px 24px;
+  margin: 24px 32px 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.translateButton {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: transparent;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.translateButton:hover {
+  background: #f9fafb;
+  border-color: #d1d5db;
+}
+
+.translateIcon {
+  font-size: 16px;
+}
+
+.userProfile {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.userProfile:hover {
+  opacity: 0.8;
+}
+
+.userName {
+  font-size: 15px;
+  font-weight: 500;
+  color: #111827;
+}
+
+.userAvatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+}
+
+/* Content area for page content */
+.contentArea {
+  flex: 1;
+  padding: 16px 32px 24px 32px;
+  overflow-y: auto;
+}
+
+/* Page Content Styles */
+.pageContent {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.pageHeaderCard {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+}
+
+.pageHeaderContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.pageHeaderContent h1 {
+  font-size: 28px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.controlsContainer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.selectInput {
+  height: 40px;
+  padding: 0 32px 0 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%23718096' d='M6 9L1 4h10z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+}
+
+.selectInput:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.searchContainer {
+  position: relative;
+  width: 256px;
+}
+
+.searchInput {
+  width: 100%;
+  height: 40px;
+  padding: 0 40px 0 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #2563eb;
+}
+
+.searchIconButton {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+.searchIconButton svg {
+  width: 16px;
+  height: 16px;
+  color: #a0aec0;
+}
+
+.contentCard {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  padding: 24px;
+}
+
+.scrollableContent {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  max-height: calc(100vh - 320px);
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.profileContainer {
+  padding: 16px;
+}
+
+.profileHeader {
+  display: flex;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.avatarLarge {
+  width: 128px;
+  height: 128px;
+  background: #667eea;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-size: 32px;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.profileInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.profileInfo h2 {
+  font-size: 24px;
+  font-weight: 700;
+  color: #1a202c;
+  margin: 0;
+}
+
+.profileId,
+.profileEmail {
+  font-size: 14px;
+  color: #718096;
+  margin: 0;
+}
+
+.profileDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.profileSection h3 {
+  font-size: 14px;
+  font-weight: 500;
+  color: #718096;
+  margin: 0 0 8px 0;
+}
+
+.profileDetailItem {
+  font-size: 16px;
+  color: #2d3748;
+  margin-bottom: 4px;
+}
+
+.detailLabel {
+  font-weight: 600;
+}
+
+.profileStats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 24px;
+  padding-top: 24px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.statItem h3 {
+  font-size: 14px;
+  font-weight: 500;
+  color: #718096;
+  margin: 0 0 8px 0;
+}
+
+.statValue {
+  font-size: 32px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.statPrimary {
+  color: #667eea;
+}
+
+.statDanger {
+  color: #e53e3e;
+}
+
+/* Added patron book card styling matching admin books page */
+/* Patron Books Page - Card Styling */
+.patronBookCard {
+  display: flex;
+  gap: 24px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+}
+
+.patronBookImage {
+  width: 160px;
+  height: 224px;
+  object-fit: cover;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.patronBookDetails {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.patronBookTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2563eb;
+  margin: 0 0 4px 0;
+}
+
+.patronBookAuthor {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0 0 16px 0;
+}
+
+.patronBookInfo {
+  background: #f9fafb;
+  border-radius: 8px;
+  padding: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-top: auto;
+}
+
+.patronBookInfoGrid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.patronBookInfoItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.patronBookInfoLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+}
+
+.patronBookInfoValue {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.patronBookAvailability {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.patronBookAvailableBadge {
+  background: #d1fae5;
+  color: #065f46;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.patronBookAvailableCount {
+  font-size: 18px;
+  font-weight: 600;
+  color: #1a1a1a;
+}
+
+.patronReserveButton {
+  background: #2563eb;
+  color: white;
+  padding: 8px 24px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.patronReserveButton:hover {
+  background: #1d4ed8;
+}
+
+.patronReserveButton:disabled {
+  background: #d1d5db;
+  color: #6b7280;
+  cursor: not-allowed;
+}
+
+/* Added reservation modal styling matching Figma design */
+/* Reservation Modal */
+.reservationModalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.reservationModalContent {
+  background: rgba(55, 65, 81, 0.95);
+  border-radius: 12px;
+  padding: 32px;
+  max-width: 500px;
+  width: 90%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);
+}
+
+.reservationModalTitle {
+  font-size: 16px;
+  font-weight: 400;
+  color: #ffffff;
+  margin: 0 0 8px 0;
+}
+
+.reservationModalBookTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0 0 32px 0;
+}
+
+.reservationModalBody {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  margin-bottom: 32px;
+}
+
+.reservationInputGroup {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.reservationLabel {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+  min-width: 60px;
+}
+
+.reservationInput {
+  flex: 1;
+  padding: 12px 16px;
+  border: none;
+  border-radius: 6px;
+  font-size: 16px;
+  background: #ffffff;
+  color: #111827;
+}
+
+.reservationInput:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.3);
+}
+
+.reservationDatesGroup {
+  display: flex;
+  gap: 24px;
+}
+
+.reservationDateItem {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reservationDateLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #d1d5db;
+}
+
+.reservationDateValue {
+  font-size: 18px;
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.reservationSubmitButton {
+  width: 100%;
+  padding: 14px 24px;
+  background: #ffffff;
+  color: #111827;
+  border: none;
+  border-radius: 8px;
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.reservationSubmitButton:hover {
+  background: #f3f4f6;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.reservationSubmitButton:active {
+  transform: translateY(0);
+}
+
+/* Adding bookbag card styling matching the Figma design with three columns */
+/* Bookbag Card Styling */
+.bookCard {
+  display: flex;
+  gap: 20px;
+  padding: 16px;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: white;
+}
+
+.bookImage {
+  width: 140px;
+  height: 200px;
+  object-fit: cover;
+  border-radius: 4px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  flex-shrink: 0;
+}
+
+.bookContent {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bookTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #2563eb;
+  margin: 0;
+}
+
+.bookAuthor {
+  font-size: 14px;
+  color: #6b7280;
+  margin: 0;
+}
+
+.bookDetailsBox {
+  background: #f3f4f6;
+  border-radius: 8px;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: 24px;
+  margin-top: auto;
+}
+
+.bookDetailsLeft,
+.bookDetailsCenter,
+.bookDetailsRight {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bookDetailsRight {
+  min-width: 140px;
+}
+
+.detailRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+}
+
+.detailLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.detailValue {
+  font-size: 14px;
+  color: #111827;
+  font-weight: 500;
+}
+
+.statusBadge {
+  display: inline-block;
+  padding: 6px 16px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  text-align: center;
+}
+
+.statusOwned {
+  background: #10b981;
+  color: white;
+}
+
+.statusOverdue {
+  background: #ef4444;
+  color: white;
+}
+
+.statusPending {
+  background: #f59e0b;
+  color: white;
+}
+
+.daysOverdue {
+  color: #ef4444;
+  font-weight: 600;
+}
+
+/* Adding cancel reservation button styling for pending pickup status */
+.cancelReservationButton {
+  margin-top: 8px;
+  padding: 8px 16px;
+  background: #ef4444;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  width: 100%;
+}
+
+.cancelReservationButton:hover {
+  background: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(239, 68, 68, 0.2);
+}
+
+.cancelReservationButton:active {
+  transform: translateY(0);
+}
+
+/* Notice Card Styling */
+.patron-notice-card {
+  background: white;
+  border: 1px solid #e5e7eb;
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 20px 24px;
+  transition: box-shadow 0.2s;
+}
+
+.patron-notice-card:hover {
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+.notice-border-green {
+  border-left-color: #10b981;
+}
+
+.notice-border-blue {
+  border-left-color: #3b82f6;
+}
+
+.notice-border-yellow {
+  border-left-color: #f59e0b;
+}
+
+.notice-border-red {
+  border-left-color: #ef4444;
+}
+
+.notice-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.notice-card-title {
+  font-size: 18px;
+  font-weight: 700;
+  color: #111827;
+  margin: 0;
+}
+
+.notice-card-date {
+  font-size: 13px;
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.notice-card-description {
+  font-size: 14px;
+  color: #4b5563;
+  line-height: 1.6;
+  margin: 0 0 12px 0;
+}
+
+.notice-card-book {
+  font-size: 14px;
+  color: #2563eb;
+  font-weight: 600;
+  margin: 0;
+}

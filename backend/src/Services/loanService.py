@@ -31,39 +31,39 @@ class LoanService:
     
     async def get_all_loans(self, skip: int = 0, limit: int = 10) -> List[LoanResponse]:
         """Get all loans with pagination"""
-        loans = await self.loan_broker.select_all_loans(skip=skip, limit=limit)
+        loans = await self.loan_broker.SelectAllLoans(skip=skip, limit=limit)
         return [LoanResponse(**loan) for loan in loans]
     
     async def get_loan_by_id(self, loan_id: UUID) -> Optional[LoanResponse]:
         """Get a specific loan by ID"""
-        loan_data = await self.loan_broker.select_loan_by_id(loan_id)
+        loan_data = await self.loan_broker.SelectLoanById(loan_id)
         return LoanResponse(**loan_data) if loan_data else None
     
     async def get_loans_by_user(self, user_id: UUID, status: Optional[str] = None) -> List[LoanResponse]:
         """Get all loans for a user, optionally filtered by status"""
-        loans = await self.loan_broker.select_loans_by_user(user_id, status)
+        loans = await self.loan_broker.SelectLoansByUser(user_id, status)
         return [LoanResponse(**loan) for loan in loans]
     
     async def get_loans_by_status(self, status: LoanStatus, skip: int = 0, limit: int = 100) -> List[LoanResponse]:
         """Get all loans with a specific status"""
-        loans = await self.loan_broker.select_loans_by_status(status.value, skip, limit)
+        loans = await self.loan_broker.SelectLoansByStatus(status.value, skip, limit)
         return [LoanResponse(**loan) for loan in loans]
     
     async def get_overdue_loans(self) -> List[LoanResponse]:
         """Get all loans that are overdue"""
-        loans = await self.loan_broker.select_overdue_loans()
+        loans = await self.loan_broker.SelectOverdueLoans()
         return [LoanResponse(**loan) for loan in loans]
 
     # ==================== LOAN POLICIES ====================
     
     async def get_all_loan_policies(self) -> List[LoanPolicyResponse]:
         """Get all loan policies"""
-        policies = await self.loan_broker.select_all_loan_policies()
+        policies = await self.loan_broker.SelectAllLoanPolicies()
         return [LoanPolicyResponse(**policy) for policy in policies]
     
     async def get_loan_policy(self, role: str) -> Optional[LoanPolicyResponse]:
         """Get loan policy for a specific role"""
-        policy_data = await self.loan_broker.select_loan_policy(role)
+        policy_data = await self.loan_broker.SelectLoanPolicy(role)
         return LoanPolicyResponse(**policy_data) if policy_data else None
 
     # ==================== LOAN CREATION ====================
@@ -79,7 +79,7 @@ class LoanService:
         4. User doesn't already have this copy on loan
         """
         # 1. Get user and check blacklist
-        user = await self.user_broker.select_user_by_id(user_id)
+        user = await self.user_broker.SelectUserById(user_id)
         if not user:
             raise ValueError("User not found")
         
@@ -87,11 +87,11 @@ class LoanService:
             raise ValueError(f"User is blacklisted. Reason: {user.get('blacklist_note', 'No reason provided')}")
         
         # 2. Check max_books limit
-        policy = await self.loan_broker.select_loan_policy(user["role"])
+        policy = await self.loan_broker.SelectLoanPolicy(user["role"])
         if not policy:
             raise ValueError(f"No loan policy found for role {user['role']}")
         
-        active_loans = await self.loan_broker.select_active_loans_by_user(user_id)
+        active_loans = await self.loan_broker.SelectActiveLoansByUser(user_id)
         if len(active_loans) >= policy["max_books"]:
             raise ValueError(
                 f"User has reached maximum book limit ({policy['max_books']} books). "
@@ -99,7 +99,7 @@ class LoanService:
             )
         
         # 3. Check if copy is available
-        copy = await self.copy_broker.select_copy_by_id(copy_id)
+        copy = await self.copy_broker.SelectCopyById(copy_id)
         if not copy:
             raise ValueError("Book copy not found")
         
@@ -107,7 +107,7 @@ class LoanService:
             raise ValueError(f"Book copy is not available. Current status: {copy['status']}")
         
         # 4. Check if user already has this copy on loan
-        has_on_loan = await self.loan_broker.check_user_has_copy_on_loan(user_id, copy_id)
+        has_on_loan = await self.loan_broker.CheckUserHasCopyOnLoan(user_id, copy_id)
         if has_on_loan:
             raise ValueError("User already has this book copy on loan")
         
@@ -118,7 +118,7 @@ class LoanService:
             "status": "pending"
         }
         
-        created_loan = await self.loan_broker.insert_loan(loan_data)
+        created_loan = await self.loan_broker.InsertLoan(loan_data)
         
         # Update copy status to reserved (optional - depends on your workflow)
         # For now, keeping it available until admin approves
@@ -136,8 +136,8 @@ class LoanService:
         2. Otherwise → use loan_policies based on user role
         """
         # Get user and book info
-        user = await self.user_broker.select_user_by_id(user_id)
-        copy = await self.copy_broker.select_copy_by_id(copy_id)
+        user = await self.user_broker.SelectUserById(user_id)
+        copy = await self.copy_broker.SelectCopyById(copy_id)
         
         if not user or not copy:
             raise ValueError("User or copy not found")
@@ -145,23 +145,23 @@ class LoanService:
         book_id = copy["book_id"]
         
         # Check if this book is required for any courses
-        course_books = await self.course_broker.select_courses_by_book(UUID(book_id))
+        course_books = await self.course_broker.SelectCoursesByBook(UUID(book_id))
         
         if course_books and user["role"] == "student":
             # Check if student is enrolled in any of these courses
-            student_enrollments = await self.course_broker.select_enrollments_by_student(user_id)
+            student_enrollments = await self.course_broker.SelectEnrollmentsByStudent(user_id)
             enrolled_course_codes = {e["course_code"] for e in student_enrollments}
             
             for course_book in course_books:
                 if course_book["course_code"] in enrolled_course_codes:
                     # Student is enrolled in a course that requires this book
-                    course = await self.course_broker.select_course_by_code(course_book["course_code"])
+                    course = await self.course_broker.SelectCourseByCode(course_book["course_code"])
                     if course:
                         loan_days = course.get("course_loan_days", 90)
                         return datetime.utcnow() + timedelta(days=loan_days)
         
         # Default: use loan policy based on role
-        policy = await self.loan_broker.select_loan_policy(user["role"])
+        policy = await self.loan_broker.SelectLoanPolicy(user["role"])
         if not policy:
             # Fallback to default
             loan_days = 7
@@ -182,7 +182,7 @@ class LoanService:
         3. Set approval_date and due_date
         4. Update copy status (optional)
         """
-        loan = await self.loan_broker.select_loan_by_id(loan_id)
+        loan = await self.loan_broker.SelectLoanById(loan_id)
         if not loan:
             raise ValueError("Loan not found")
         
@@ -199,7 +199,7 @@ class LoanService:
             "due_date": due_date.isoformat()
         }
         
-        updated_loan = await self.loan_broker.update_loan(loan_id, update_data)
+        updated_loan = await self.loan_broker.UpdateLoan(loan_id, update_data)
         
         return LoanResponse(**updated_loan) if updated_loan else None
 
@@ -207,7 +207,7 @@ class LoanService:
     
     async def reject_loan(self, loan_id: UUID) -> LoanResponse:
         """Reject a loan request"""
-        loan = await self.loan_broker.select_loan_by_id(loan_id)
+        loan = await self.loan_broker.SelectLoanById(loan_id)
         if not loan:
             raise ValueError("Loan not found")
         
@@ -218,7 +218,7 @@ class LoanService:
             "status": "rejected"
         }
         
-        updated_loan = await self.loan_broker.update_loan(loan_id, update_data)
+        updated_loan = await self.loan_broker.UpdateLoan(loan_id, update_data)
         return LoanResponse(**updated_loan) if updated_loan else None
 
     # ==================== LOAN RETURN ====================
@@ -233,7 +233,7 @@ class LoanService:
         3. If overdue and increment_infractions=True, increment user's infractions_count
         4. Update copy status back to 'available'
         """
-        loan = await self.loan_broker.select_loan_by_id(loan_id)
+        loan = await self.loan_broker.SelectLoanById(loan_id)
         if not loan:
             raise ValueError("Loan not found")
         
@@ -254,17 +254,17 @@ class LoanService:
             "return_date": now.isoformat()
         }
         
-        updated_loan = await self.loan_broker.update_loan(loan_id, update_data)
+        updated_loan = await self.loan_broker.UpdateLoan(loan_id, update_data)
         
         # Update copy status back to available
-        await self.copy_broker.update_copy(UUID(loan["copy_id"]), {"status": "available"})
+        await self.copy_broker.UpdateCopy(UUID(loan["copy_id"]), {"status": "available"})
         
         # Increment infractions if overdue and requested
         if is_overdue and increment_infractions:
-            user = await self.user_broker.select_user_by_id(UUID(loan["user_id"]))
+            user = await self.user_broker.SelectUserById(UUID(loan["user_id"]))
             if user:
                 current_infractions = user.get("infractions_count", 0)
-                await self.user_broker.update_user(
+                await self.user_broker.UpdateUser(
                     UUID(loan["user_id"]),
                     {"infractions_count": current_infractions + 1}
                 )
@@ -294,7 +294,7 @@ class LoanService:
     
     async def update_loan(self, loan_id: UUID, loan_update: LoanUpdate) -> Optional[LoanResponse]:
         """General loan update (for admin adjustments)"""
-        existing_loan = await self.loan_broker.select_loan_by_id(loan_id)
+        existing_loan = await self.loan_broker.SelectLoanById(loan_id)
         if not existing_loan:
             return None
         
@@ -309,12 +309,12 @@ class LoanService:
         if "status" in update_data and update_data["status"]:
             update_data["status"] = update_data["status"].value if hasattr(update_data["status"], "value") else update_data["status"]
         
-        updated_loan = await self.loan_broker.update_loan(loan_id, update_data)
+        updated_loan = await self.loan_broker.UpdateLoan(loan_id, update_data)
         return LoanResponse(**updated_loan) if updated_loan else None
     
     async def delete_loan(self, loan_id: UUID) -> bool:
         """Delete a loan (admin only, use with caution)"""
-        return await self.loan_broker.delete_loan(loan_id)
+        return await self.loan_broker.DeleteLoan(loan_id)
     
     async def search_loans(
         self,
@@ -324,5 +324,5 @@ class LoanService:
         to_date: Optional[str] = None
     ) -> List[LoanResponse]:
         """Search loans with multiple filters"""
-        loans = await self.loan_broker.search_loans(user_id, status, from_date, to_date)
+        loans = await self.loan_broker.SearchLoans(user_id, status, from_date, to_date)
         return [LoanResponse(**loan) for loan in loans]
