@@ -115,3 +115,67 @@ class BookBroker:
             result.append(book_with_stats)
         
         return result
+    
+    async def SelectAllBooksWithStatsAndCourses(self, skip: int = 0, limit: int = 100) -> list[dict]:
+        """Get all books with copy statistics and associated courses"""
+        def _fetch_books():
+            return self.client.table("books").select("*").range(skip, skip + limit - 1).execute()
+        
+        def _fetch_copies(book_id: str):
+            return self.client.table("book_copies").select("*").eq("book_id", book_id).execute()
+        
+        def _fetch_course_books(book_id: str):
+            return self.client.table("course_books").select("course_code").eq("book_id", book_id).execute()
+        
+        def _fetch_course_info(course_code: str):
+            return self.client.table("courses").select("*").eq("code", course_code).execute()
+        
+        books_response = await asyncio.to_thread(_fetch_books)
+        books = books_response.data if books_response.data else []
+        
+        result = []
+        for book in books:
+            book_id = str(book['id'])
+            
+            # Fetch copy stats
+            copies_response = await asyncio.to_thread(_fetch_copies, book_id)
+            copies = copies_response.data if copies_response.data else []
+            
+            total = len(copies)
+            available = sum(1 for c in copies if not c.get('is_reference', False) and c.get('status') == 'available')
+            reference = sum(1 for c in copies if c.get('is_reference', False))
+            circulating = sum(1 for c in copies if not c.get('is_reference', False))
+            checked_out = sum(1 for c in copies if c.get('status') == 'loaned')
+            
+            # Fetch associated courses
+            course_books_response = await asyncio.to_thread(_fetch_course_books, book_id)
+            course_books = course_books_response.data if course_books_response.data else []
+            
+            courses = []
+            for cb in course_books:
+                course_code = cb.get('course_code')
+                if course_code:
+                    course_response = await asyncio.to_thread(_fetch_course_info, course_code)
+                    if course_response.data:
+                        course_data = course_response.data[0]
+                        courses.append({
+                            'course_code': course_data.get('code', ''),
+                            'course_name': course_data.get('name', ''),
+                            'faculty': course_data.get('faculty'),
+                            'term': course_data.get('term')
+                        })
+            
+            book_with_data = {
+                **book,
+                'copy_stats': {
+                    'total': total,
+                    'available': available,
+                    'reference': reference,
+                    'circulating': circulating,
+                    'checked_out': checked_out
+                },
+                'courses': courses
+            }
+            result.append(book_with_data)
+        
+        return result

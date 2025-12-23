@@ -41,6 +41,18 @@ class BookWithStatsResponse(BookBase):
     created_at: datetime
     copy_stats: BookCopyStats
 
+class CourseInfo(BaseModel):
+    course_code: str
+    course_name: str
+    faculty: Optional[str] = None
+    term: Optional[str] = None
+
+class BookWithStatsAndCoursesResponse(BookBase):
+    id: UUID4
+    created_at: datetime
+    copy_stats: BookCopyStats
+    courses: List[CourseInfo] = []
+
 # --- COPIES (Inventory) ---
 class BookCopyBase(BaseModel):
     book_id: UUID4

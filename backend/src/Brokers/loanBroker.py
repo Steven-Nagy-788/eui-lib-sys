@@ -210,6 +210,13 @@ class LoanBroker:
         response = await asyncio.to_thread(_fetch)
         return response.data if response.data else []
     
+    async def UpdateLoanPolicy(self, role: str, update_data: dict) -> Optional[dict]:
+        """Update loan policy for a specific role"""
+        def _update():
+            return self.client.table("loan_policies").update(update_data).eq("role", role).execute()
+        response = await asyncio.to_thread(_update)
+        return response.data[0] if response.data else None
+    
     async def SearchLoans(
         self, 
         user_id: Optional[UUID] = None,

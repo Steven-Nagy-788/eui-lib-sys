@@ -32,7 +32,7 @@ async def get_all_loans(
     return await service.get_all_loans(skip=skip, limit=limit)
 
 
-@router.get("/status/{status}", response_model=List[LoanWithBookInfo])
+@router.get("/status/{status}", response_model=List[LoanResponse])
 async def get_loans_by_status(
     status: LoanStatus,
     skip: int = 0,
@@ -40,8 +40,8 @@ async def get_loans_by_status(
     service: LoanService = Depends(get_loan_service),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get all loans with a specific status with book details (pending, active, returned, overdue, rejected)"""
-    return await service.get_loans_by_status_with_book_info(status, skip, limit)
+    """Get all loans with a specific status (pending, active, returned, overdue, rejected)"""
+    return await service.get_loans_by_status(status, skip, limit)
 
 
 @router.get("/user/{user_id}", response_model=List[LoanWithBookInfo])

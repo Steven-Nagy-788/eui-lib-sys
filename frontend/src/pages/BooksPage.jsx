@@ -1,8 +1,9 @@
 import { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { getBooksWithStats, updateBook, deleteBook } from "../api/booksService"
-import { createLoanRequest } from "../api/loansService"
+import { getBooksWithStatsAndCourses, updateBook, deleteBook } from "../api/booksService"
+import { createLoanRequest, calculateDueDate } from "../api/loansService"
 import { getCopiesByBook, createCopy, deleteCopy, updateCopyStatus } from "../api/bookCopiesService"
+import { getAllCourses } from "../api/coursesService"
 import { getUserFromToken, isPatronRole } from "../utils/auth"
 import { getUserDashboard } from "../api/authService"
 import Spinner from "../components/Spinner"
@@ -21,6 +22,7 @@ function BooksPage({ user }) {
   const [isReserving, setIsReserving] = useState(false)
   const [selectedCopyId, setSelectedCopyId] = useState(null)
   const [availableCopies, setAvailableCopies] = useState([])
+  const [reserveModalOpen, setReserveModalOpen] = useState(false)
 
   // Admin-specific state
   const [editingBook, setEditingBook] = useState(null)
@@ -40,18 +42,33 @@ function BooksPage({ user }) {
   const isPatron = currentUser && isPatronRole(currentUser.role)
   const queryClient = useQueryClient()
 
+  // Fetch due date calculation for the selected copy (patron only)
+  const { data: dueDateInfo, refetch: refetchDueDate } = useQuery({
+    queryKey: ['due-date-calculation', selectedBook?.id, availableCopies[0]?.id],
+    queryFn: () => calculateDueDate(availableCopies[0]?.id),
+    enabled: isPatron && !!availableCopies[0]?.id && reserveModalOpen,
+    staleTime: 1 * 60 * 1000, // 1 minute cache
+  })
+
+  // Fetch all courses for dropdown
+  const { data: allCourses = [] } = useQuery({
+    queryKey: ['all-courses'],
+    queryFn: () => getAllCourses(0, 500),
+    staleTime: 10 * 60 * 1000, // 10 minutes cache
+  })
+
   // Use React Query for books with automatic caching
   const { data: books = [], isLoading, error, refetch } = useQuery({
     queryKey: ['books'],
     queryFn: async () => {
-      // TODO: Backend should support: ?search=query&faculty=Engineering  
-      const booksWithStats = await getBooksWithStats(0, 50) // Reduced from 200 to 50
+      const booksWithStats = await getBooksWithStatsAndCourses(0, 50)
       return booksWithStats.map(book => ({
         ...book,
         available: book.copy_stats?.available || 0,
         total_copies: book.copy_stats?.total || 0,
         reference_copies: book.copy_stats?.reference || 0,
-        circulating_copies: book.copy_stats?.circulating || 0
+        circulating_copies: book.copy_stats?.circulating || 0,
+        courses: book.courses || []
       }))
     },
     staleTime: 2 * 60 * 1000, // 2 minutes cache
@@ -146,6 +163,7 @@ function BooksPage({ user }) {
       setAvailableCopies([circulatingCopy])
       setSelectedBook(book)
       setSelectedCopyId(circulatingCopy.id)
+      setReserveModalOpen(true)
     } catch (err) {
       console.error('Failed to fetch copies:', err)
       toast.error('Failed to load available copies')
@@ -165,6 +183,7 @@ function BooksPage({ user }) {
       setSelectedBook(null)
       setSelectedCopyId(null)
       setAvailableCopies([])
+      setReserveModalOpen(false)
       refetch()
     } catch (err) {
       console.error('Reservation failed:', err)
@@ -362,6 +381,20 @@ function BooksPage({ user }) {
                           <span className="patronBookInfoLabel">ISBN:</span>
                           <p className="patronBookInfoValue">{book.isbn}</p>
                         </div>
+                        {book.faculty && (
+                          <div className="patronBookInfoItem">
+                            <span className="patronBookInfoLabel">Faculty:</span>
+                            <p className="patronBookInfoValue">{book.faculty}</p>
+                          </div>
+                        )}
+                        {book.courses && book.courses.length > 0 && (
+                          <div className="patronBookInfoItem" style={{ gridColumn: '1 / -1' }}>
+                            <span className="patronBookInfoLabel">Required for Courses:</span>
+                            <p className="patronBookInfoValue">
+                              {book.courses.map(course => `${course.course_code} - ${course.course_name}`).join(', ')}
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       <div className="patronBookAvailability">
@@ -387,11 +420,11 @@ function BooksPage({ user }) {
 
         {/* Reservation Modal */}
         {selectedBook && (
-          <div className="modal" onClick={() => { setSelectedBook(null); setAvailableCopies([]); setSelectedCopyId(null); }}>
+          <div className="modal" onClick={() => { setSelectedBook(null); setAvailableCopies([]); setSelectedCopyId(null); setReserveModalOpen(false); }}>
             <div className="modalContent" onClick={(e) => e.stopPropagation()}>
               <div className="modalHeader">
                 <h2 className="modalTitle">Reserve Book</h2>
-                <button className="modalCloseButton" onClick={() => { setSelectedBook(null); setAvailableCopies([]); setSelectedCopyId(null); }}>×</button>
+                <button className="modalCloseButton" onClick={() => { setSelectedBook(null); setAvailableCopies([]); setSelectedCopyId(null); setReserveModalOpen(false); }}>×</button>
               </div>
 
               <div className="modalBody">
@@ -428,20 +461,62 @@ function BooksPage({ user }) {
                   </p>
                 </div>
 
+                {/* Loan Details */}
                 <div style={{ 
-                  marginTop: '20px', 
-                  padding: '12px', 
+                  padding: '16px', 
                   background: '#eff6ff', 
-                  borderRadius: '6px',
-                  fontSize: '14px',
-                  color: '#1e40af'
+                  borderRadius: '8px',
+                  border: '1px solid #93c5fd',
+                  marginBottom: '12px'
                 }}>
-                  <strong>📋 Loan Request Info:</strong>
-                  <ul style={{ margin: '8px 0 0 20px', padding: 0 }}>
-                    <li>Your request will be sent to the admin for approval</li>
-                    <li>Loan period: Typically 14 days (determined by admin)</li>
-                    <li>You'll be notified once approved</li>
-                    <li>Check "Bookbag" page for your pending requests</li>
+                  <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: '600', color: '#1e40af' }}>
+                    📅 Loan Details
+                  </h4>
+                  <div style={{ display: 'grid', gap: '8px', fontSize: '14px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                      <span style={{ color: '#6b7280' }}>Request Date:</span>
+                      <span style={{ fontWeight: '500', color: '#1e40af' }}>
+                        {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                      </span>
+                    </div>
+                    {dueDateInfo && (
+                      <>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#6b7280' }}>Loan Period:</span>
+                          <span style={{ fontWeight: '500', color: '#10b981' }}>
+                            {dueDateInfo.loan_days} days
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#6b7280' }}>Calculation Method:</span>
+                          <span style={{ fontWeight: '500', color: '#8b5cf6', fontSize: '12px' }}>
+                            {dueDateInfo.calculation_method === 'course_override' ? '🎓 Course Override' : '👤 Role Policy'}
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                          <span style={{ color: '#6b7280' }}>Expected Due Date:</span>
+                          <span style={{ fontWeight: '500', color: '#f59e0b' }}>
+                            {new Date(dueDateInfo.due_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                          </span>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                <div style={{ 
+                  padding: '12px', 
+                  background: '#fef3c7', 
+                  borderRadius: '6px',
+                  fontSize: '13px',
+                  color: '#92400e',
+                  border: '1px solid #fbbf24'
+                }}>
+                  <strong>⚠️ Important:</strong>
+                  <ul style={{ margin: '6px 0 0 20px', padding: 0 }}>
+                    <li>Your request requires admin approval</li>
+                    <li>Check the Bookbag page to track your request status</li>
+                    <li>You'll be notified once the admin approves your loan</li>
                   </ul>
                 </div>
               </div>
@@ -449,7 +524,7 @@ function BooksPage({ user }) {
               <div className="modalFooter">
                 <button 
                   className="buttonSecondary" 
-                  onClick={() => { setSelectedBook(null); setAvailableCopies([]); setSelectedCopyId(null); }} 
+                  onClick={() => { setSelectedBook(null); setAvailableCopies([]); setSelectedCopyId(null); setReserveModalOpen(false); }} 
                   disabled={isReserving}
                 >
                   Cancel
@@ -542,6 +617,20 @@ function BooksPage({ user }) {
                           <span className="adminBookInfoLabel">Call Number:</span>
                           <p className="adminBookInfoValue">{book.call_number || 'N/A'}</p>
                         </div>
+                        {book.faculty && (
+                          <div className="adminBookInfoItem">
+                            <span className="adminBookInfoLabel">Faculty:</span>
+                            <p className="adminBookInfoValue">{book.faculty}</p>
+                          </div>
+                        )}
+                        {book.courses && book.courses.length > 0 && (
+                          <div className="adminBookInfoItem" style={{ gridColumn: '1 / -1' }}>
+                            <span className="adminBookInfoLabel">Courses:</span>
+                            <p className="adminBookInfoValue">
+                              {book.courses.map(course => course.course_code).join(', ')}
+                            </p>
+                          </div>
+                        )}
                       </div>
 
                       <div className="adminBookStats">
@@ -839,6 +928,25 @@ function BooksPage({ user }) {
                   value={editingBook.book_pic_url || ''}
                   onChange={(e) => setEditingBook({...editingBook, book_pic_url: e.target.value})}
                 />
+              </div>
+
+              <div className="formGroup">
+                <label>Associated Courses (Optional)</label>
+                <select
+                  value={editingBook.course_code || ''}
+                  onChange={(e) => setEditingBook({...editingBook, course_code: e.target.value})}
+                  style={{ width: '100%' }}
+                >
+                  <option value="">-- Select a course (optional) --</option>
+                  {allCourses.map((course) => (
+                    <option key={course.code} value={course.code}>
+                      {course.code} - {course.name}
+                    </option>
+                  ))}
+                </select>
+                <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '4px' }}>
+                  Select a course this book is required for
+                </p>
               </div>
             </div>
 

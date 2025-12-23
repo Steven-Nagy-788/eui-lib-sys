@@ -1,6 +1,6 @@
 from typing import List, Optional
 from uuid import UUID
-from ..Models.Books import BookCreate, BookResponse, BookWithStatsResponse, BookCopyStats
+from ..Models.Books import BookCreate, BookResponse, BookWithStatsResponse, BookCopyStats, BookWithStatsAndCoursesResponse, CourseInfo
 from ..Brokers.bookBroker import BookBroker
 
 
@@ -48,4 +48,21 @@ class BookService:
                 copy_stats=BookCopyStats(**copy_stats)
             )
             result.append(book_with_stats)
+        return result
+    
+    async def RetrieveBooksWithStatsAndCourses(self, skip: int = 0, limit: int = 100) -> List[BookWithStatsAndCoursesResponse]:
+        """Get books with copy statistics and associated courses"""
+        books_data = await self.broker.SelectAllBooksWithStatsAndCourses(skip=skip, limit=limit)
+        result = []
+        for book_data in books_data:
+            copy_stats = book_data.pop('copy_stats', {})
+            courses_data = book_data.pop('courses', [])
+            
+            book_with_data = BookWithStatsAndCoursesResponse(
+                **book_data,
+                copy_stats=BookCopyStats(**copy_stats),
+                courses=[CourseInfo(**course) for course in courses_data]
+            )
+            result.append(book_with_data)
+        return result
         return result

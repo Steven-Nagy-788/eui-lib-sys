@@ -1,10 +1,11 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { useQuery } from "@tanstack/react-query"
-import { getUserLoans } from "../api/loansService"
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
+import { getUserLoans, rejectLoan } from "../api/loansService"
 import { getUserFromToken } from "../api/authService"
 import Spinner from "../components/Spinner"
+import toast from "../utils/toast"
 import "../assets/PatronPages.css"
 import "../assets/Responsive.css"
 
@@ -13,6 +14,7 @@ function PatronBookbagPage() {
   const [activeTab, setActiveTab] = useState("current") // "current" or "history"
 
   const currentUser = getUserFromToken()
+  const queryClient = useQueryClient()
 
   // Use React Query for loans with automatic caching
   const { data: loans = [], isLoading, error, refetch } = useQuery({
@@ -82,6 +84,22 @@ function PatronBookbagPage() {
     return { currentLoans: current, historyLoans: history }
   }, [loans])
 
+  // Cancel mutation for patrons to cancel their own requests
+  const cancelMutation = useMutation({
+    mutationFn: (loanId) => rejectLoan(loanId),
+    onSuccess: () => {
+      queryClient.invalidateQueries(['userLoans'])
+      toast.success('Request cancelled successfully')
+    },
+    onError: (error) => {
+      toast.error(error.message || 'Failed to cancel request')
+    }
+  })
+
+  const handleCancelRequest = (loanId) => {
+    cancelMutation.mutate(loanId)
+  }
+
   // Filter based on search and active tab
   const displayedLoans = useMemo(() => {
     const source = activeTab === 'current' ? currentLoans : historyLoans
@@ -95,8 +113,9 @@ function PatronBookbagPage() {
   }, [currentLoans, historyLoans, activeTab, searchQuery])
 
   const handleCancelReservation = (loanId) => {
-    // TODO: Implement cancel reservation API call
-    console.log(`Canceling reservation for loan ${loanId}`)
+    if (confirm('Are you sure you want to cancel this reservation?')) {
+      cancelMutation.mutate(loanId)
+    }
   }
 
   if (isLoading) {
@@ -305,10 +324,29 @@ function PatronBookbagPage() {
                     </div>
                     {loan.status === 'pending' && (
                       <button
-                        onClick={() => handleCancelReservation(loan.id)}
-                        className="cancelButton"
+                        onClick={() => handleCancelRequest(loan.id)}
+                        disabled={cancelMutation.isPending}
+                        style={{
+                          marginTop: '12px',
+                          padding: '8px 16px',
+                          background: '#ef4444',
+                          color: 'white',
+                          border: 'none',
+                          borderRadius: '6px',
+                          cursor: cancelMutation.isPending ? 'not-allowed' : 'pointer',
+                          fontSize: '14px',
+                          fontWeight: '500',
+                          opacity: cancelMutation.isPending ? 0.6 : 1,
+                          transition: 'all 0.2s'
+                        }}
+                        onMouseEnter={(e) => {
+                          if (!cancelMutation.isPending) e.target.style.background = '#dc2626'
+                        }}
+                        onMouseLeave={(e) => {
+                          if (!cancelMutation.isPending) e.target.style.background = '#ef4444'
+                        }}
                       >
-                        Cancel Reservation
+                        {cancelMutation.isPending ? 'Cancelling...' : 'Cancel Request'}
                       </button>
                     )}
                   </div>

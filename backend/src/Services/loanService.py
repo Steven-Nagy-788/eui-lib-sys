@@ -7,6 +7,7 @@ from ..Models.Loans import (
     LoanUpdate,
     LoanStatus,
     LoanPolicyResponse,
+    LoanPolicyUpdate,
     LoanWithBookInfo
 )
 from ..Brokers.loanBroker import LoanBroker
@@ -102,6 +103,21 @@ class LoanService:
         """Get loan policy for a specific role"""
         policy_data = await self.loan_broker.SelectLoanPolicy(role)
         return LoanPolicyResponse(**policy_data) if policy_data else None
+    
+    async def update_loan_policy(self, role: str, policy_update: LoanPolicyUpdate) -> Optional[LoanPolicyResponse]:
+        """Update loan policy for a specific role"""
+        # Check if policy exists
+        existing_policy = await self.loan_broker.SelectLoanPolicy(role)
+        if not existing_policy:
+            raise ValueError(f"Loan policy for role '{role}' not found")
+        
+        # Update only provided fields
+        update_data = policy_update.model_dump(exclude_unset=True)
+        if not update_data:
+            raise ValueError("No fields to update")
+        
+        updated_policy = await self.loan_broker.UpdateLoanPolicy(role, update_data)
+        return LoanPolicyResponse(**updated_policy) if updated_policy else None
 
     # ==================== LOAN CREATION ====================
     
@@ -167,14 +183,7 @@ class LoanService:
     # ==================== DUE DATE CALCULATION ====================
     
     async def calculate_due_date(self, user_id: UUID, copy_id: UUID) -> datetime:
-        """
-        Calculate due date for a loan with course override logic
-        
-        Priority:
-        1. If student is enrolled in a course that requires this book → use course_loan_days
-        2. Otherwise → use loan_policies based on user role
-        """
-        # Get user and book info
+        """Calculate due date for a loan with course override logic"""
         user = await self.user_broker.SelectUserById(user_id)
         copy = await self.copy_broker.SelectCopyById(copy_id)
         
@@ -182,32 +191,70 @@ class LoanService:
             raise ValueError("User or copy not found")
         
         book_id = copy["book_id"]
-        
-        # Check if this book is required for any courses
         course_books = await self.course_broker.SelectCoursesByBook(UUID(book_id))
         
         if course_books and user["role"] == "student":
-            # Check if student is enrolled in any of these courses
             student_enrollments = await self.course_broker.SelectEnrollmentsByStudent(user_id)
             enrolled_course_codes = {e["course_code"] for e in student_enrollments}
             
             for course_book in course_books:
                 if course_book["course_code"] in enrolled_course_codes:
-                    # Student is enrolled in a course that requires this book
                     course = await self.course_broker.SelectCourseByCode(course_book["course_code"])
                     if course:
                         loan_days = course.get("course_loan_days", 90)
                         return datetime.now(timezone.utc) + timedelta(days=loan_days)
         
-        # Default: use loan policy based on role
         policy = await self.loan_broker.SelectLoanPolicy(user["role"])
         if not policy:
-            # Fallback to default
             loan_days = 7
         else:
             loan_days = policy["loan_days"]
         
         return datetime.now(timezone.utc) + timedelta(days=loan_days)
+    
+    async def get_due_date_calculation(self, user_id: UUID, copy_id: UUID) -> dict:
+        """Get detailed due date calculation information"""
+        user = await self.user_broker.SelectUserById(user_id)
+        copy = await self.copy_broker.SelectCopyById(copy_id)
+        
+        if not user or not copy:
+            raise ValueError("User or copy not found")
+        
+        book_id = copy["book_id"]
+        calculation_method = "role_policy"
+        loan_days = 7
+        
+        # Check course override
+        course_books = await self.course_broker.SelectCoursesByBook(UUID(book_id))
+        
+        if course_books and user["role"] == "student":
+            student_enrollments = await self.course_broker.SelectEnrollmentsByStudent(user_id)
+            enrolled_course_codes = {e["course_code"] for e in student_enrollments}
+            
+            for course_book in course_books:
+                if course_book["course_code"] in enrolled_course_codes:
+                    course = await self.course_broker.SelectCourseByCode(course_book["course_code"])
+                    if course:
+                        loan_days = course.get("course_loan_days", 90)
+                        calculation_method = "course_override"
+                        break
+        
+        # Use role policy if no course override
+        if calculation_method == "role_policy":
+            policy = await self.loan_broker.SelectLoanPolicy(user["role"])
+            if policy:
+                loan_days = policy["loan_days"]
+        
+        due_date = datetime.now(timezone.utc) + timedelta(days=loan_days)
+        
+        return {
+            "copy_id": copy_id,
+            "user_id": user_id,
+            "due_date": due_date,
+            "loan_days": loan_days,
+            "calculation_method": calculation_method,
+            "role": user["role"]
+        }
 
     # ==================== LOAN APPROVAL ====================
     
@@ -245,7 +292,7 @@ class LoanService:
     # ==================== LOAN REJECTION ====================
     
     async def reject_loan(self, loan_id: UUID) -> LoanResponse:
-        """Reject a loan request"""
+        """Reject a loan request (Admin only)"""
         loan = await self.loan_broker.SelectLoanById(loan_id)
         if not loan:
             raise ValueError("Loan not found")
@@ -255,6 +302,35 @@ class LoanService:
         
         update_data = {
             "status": "rejected"
+        }
+        
+        updated_loan = await self.loan_broker.UpdateLoan(loan_id, update_data)
+        return LoanResponse(**updated_loan) if updated_loan else None
+
+    # ==================== LOAN CANCELLATION ====================
+    
+    async def cancel_loan(self, loan_id: UUID, user_id: Optional[UUID] = None) -> LoanResponse:
+        """
+        Cancel a loan request (User can cancel their own pending loans)
+        
+        Actions:
+        - Verify loan belongs to the user (if user_id provided)
+        - Only allow canceling 'pending' loans
+        - Update status to 'canceled'
+        """
+        loan = await self.loan_broker.SelectLoanById(loan_id)
+        if not loan:
+            raise ValueError("Loan not found")
+        
+        # Verify ownership if user_id is provided
+        if user_id and str(loan["user_id"]) != str(user_id):
+            raise ValueError("You can only cancel your own loan requests")
+        
+        if loan["status"] != "pending":
+            raise ValueError(f"Only pending loans can be canceled. Current status: {loan['status']}")
+        
+        update_data = {
+            "status": "canceled"
         }
         
         updated_loan = await self.loan_broker.UpdateLoan(loan_id, update_data)

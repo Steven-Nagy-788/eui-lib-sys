@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query"
 import { getUserFromToken } from "../utils/auth"
 import { getUserDashboard } from "../api/authService"
 import { getUserLoans } from "../api/loansService"
+import { getStudentEnrollments } from "../api/coursesService"
 import { isPatronRole } from "../utils/auth"
 import Spinner from "../components/Spinner"
 import "../assets/AdminPages.css"
@@ -24,6 +25,14 @@ function ProfilePage({ user }) {
     queryKey: ['userLoans', currentUser?.id],
     queryFn: () => getUserLoans(currentUser?.id),
     staleTime: 60 * 1000, // Cache for 1 minute
+    enabled: !!currentUser?.id && isPatron,
+  })
+
+  // Fetch student enrollments/courses
+  const { data: enrollments, isLoading: enrollmentsLoading } = useQuery({
+    queryKey: ['studentEnrollments', currentUser?.id],
+    queryFn: () => getStudentEnrollments(currentUser?.id),
+    staleTime: 5 * 60 * 1000, // Cache for 5 minutes
     enabled: !!currentUser?.id && isPatron,
   })
 
@@ -111,6 +120,50 @@ function ProfilePage({ user }) {
                 <div className="profileDetailItem">
                   <span className="detailLabel">Email:</span> {profileUser.email}
                 </div>
+                {profileUser.faculty && (
+                  <div className="profileDetailItem">
+                    <span className="detailLabel">Faculty:</span> {profileUser.faculty}
+                  </div>
+                )}
+                {profileUser.academic_year && (
+                  <div className="profileDetailItem">
+                    <span className="detailLabel">Academic Year:</span> {profileUser.academic_year}
+                  </div>
+                )}
+              </div>
+
+              <div className="profileSection" style={{ marginTop: '20px' }}>
+                <h3>Enrolled Courses</h3>
+                {enrollmentsLoading ? (
+                  <Spinner size="small" />
+                ) : enrollments && enrollments.length > 0 ? (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+                    {enrollments.map((enrollment) => (
+                      <div
+                        key={enrollment.id}
+                        style={{
+                          padding: '10px 14px',
+                          background: '#eff6ff',
+                          borderRadius: '6px',
+                          border: '1px solid #bfdbfe',
+                        }}
+                      >
+                        <div style={{ fontWeight: '500', fontSize: '14px', color: '#1e40af' }}>
+                          {enrollment.course_code} - {enrollment.course_name}
+                        </div>
+                        {enrollment.semester && (
+                          <div style={{ fontSize: '13px', color: '#6b7280', marginTop: '4px' }}>
+                            Semester: {enrollment.semester}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p style={{ color: '#6b7280', fontStyle: 'italic', marginTop: '12px' }}>
+                    No enrolled courses
+                  </p>
+                )}
               </div>
 
               <div className="profileStats">

@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useRef, useCallback } from "react"
 import { getUsers, searchUsers, addToBlacklist, removeFromBlacklist, getUser } from "../api/usersService"
 import { getUserLoans } from "../api/loansService"
+import { getStudentEnrollments } from "../api/coursesService"
 import Spinner from "../components/Spinner"
 import toast from "../utils/toast"
 import "../assets/AdminPages.css"
@@ -251,6 +252,7 @@ function AdminPatronsPage() {
   const [selectedPatron, setSelectedPatron] = useState(null)
   const [patronDetails, setPatronDetails] = useState(null)
   const [patronLoans, setPatronLoans] = useState([])
+  const [patronEnrollments, setPatronEnrollments] = useState([])
   const [isLoadingDetails, setIsLoadingDetails] = useState(false)
   const containerRef = useRef(null)
   const searchTimeoutRef = useRef(null)
@@ -346,18 +348,32 @@ function AdminPatronsPage() {
     setSelectedPatron(patron)
     setIsLoadingDetails(true)
     try {
-      // Fetch full patron details and loan history
+      // Fetch full patron details, loan history, and enrollments
       const [details, loans] = await Promise.all([
         getUser(patron.id),
         getUserLoans(patron.id)
       ])
       setPatronDetails(details)
       setPatronLoans(loans)
+      
+      // Fetch enrollments if student
+      if (details.role === 'student') {
+        try {
+          const enrollments = await getStudentEnrollments(patron.id)
+          setPatronEnrollments(enrollments)
+        } catch (err) {
+          console.error('Failed to fetch enrollments:', err)
+          setPatronEnrollments([])
+        }
+      } else {
+        setPatronEnrollments([])
+      }
     } catch (err) {
       console.error('Failed to fetch patron details:', err)
       toast.error('Failed to load patron details')
       setPatronDetails(patron) // Fallback to basic info
       setPatronLoans([])
+      setPatronEnrollments([])
     } finally {
       setIsLoadingDetails(false)
     }
@@ -442,7 +458,7 @@ function AdminPatronsPage() {
 
       {/* Patron Detail Modal */}
       {selectedPatron && (
-        <div className="modal" onClick={() => { setSelectedPatron(null); setPatronDetails(null); setPatronLoans([]); }}>
+        <div className="modal" onClick={() => { setSelectedPatron(null); setPatronDetails(null); setPatronLoans([]); setPatronEnrollments([]); }}>
           <div 
             className="modalContent" 
             style={{ maxWidth: '900px', maxHeight: '80vh', overflow: 'auto' }}
@@ -452,7 +468,7 @@ function AdminPatronsPage() {
               <h2 className="modalTitle">Patron Details</h2>
               <button 
                 className="modalCloseButton" 
-                onClick={() => { setSelectedPatron(null); setPatronDetails(null); setPatronLoans([]); }}
+                onClick={() => { setSelectedPatron(null); setPatronDetails(null); setPatronLoans([]); setPatronEnrollments([]); }}
               >
                 ×
               </button>
@@ -498,8 +514,56 @@ function AdminPatronsPage() {
                           )}
                         </p>
                       </div>
+                      {patronDetails.faculty && (
+                        <div>
+                          <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Faculty</label>
+                          <p style={{ margin: 0, fontWeight: '500' }}>{patronDetails.faculty}</p>
+                        </div>
+                      )}
+                      {patronDetails.academic_year && (
+                        <div>
+                          <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Academic Year</label>
+                          <p style={{ margin: 0, fontWeight: '500' }}>Year {patronDetails.academic_year}</p>
+                        </div>
+                      )}
                     </div>
                   </div>
+
+                  {/* Enrolled Courses */}
+                  {patronDetails.role === 'student' && (
+                    <div style={{ marginBottom: '24px' }}>
+                      <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
+                        Enrolled Courses ({patronEnrollments.length})
+                      </h3>
+                      {patronEnrollments.length === 0 ? (
+                        <p style={{ color: '#6b7280', fontStyle: 'italic' }}>No enrolled courses</p>
+                      ) : (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '12px' }}>
+                          {patronEnrollments.map((enrollment, index) => (
+                            <div 
+                              key={index}
+                              style={{ 
+                                background: '#dbeafe', 
+                                padding: '12px', 
+                                borderRadius: '8px',
+                                border: '1px solid #93c5fd'
+                              }}
+                            >
+                              <p style={{ margin: '0 0 4px 0', fontWeight: '600', color: '#1e40af' }}>
+                                {enrollment.course_code}
+                              </p>
+                              <p style={{ margin: '0 0 4px 0', fontSize: '14px', color: '#1e3a8a' }}>
+                                {enrollment.course_name}
+                              </p>
+                              <p style={{ margin: 0, fontSize: '12px', color: '#3b82f6' }}>
+                                {enrollment.semester}
+                              </p>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
 
                   {/* Statistics */}
                   <div style={{ marginBottom: '24px' }}>

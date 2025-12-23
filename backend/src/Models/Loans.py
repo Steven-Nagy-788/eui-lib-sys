@@ -7,6 +7,7 @@ from typing import Optional
 class LoanStatus(str, Enum):
     PENDING = "pending"
     ACTIVE = "active"
+    CANCELED = "canceled"
     RETURNED = "returned"
     OVERDUE = "overdue"
     REJECTED = "rejected"
@@ -16,6 +17,19 @@ class LoanPolicyResponse(BaseModel):
     role: str
     max_books: int
     loan_days: int
+
+class LoanPolicyUpdate(BaseModel):
+    max_books: Optional[int] = None
+    loan_days: Optional[int] = None
+
+class DueDateCalculation(BaseModel):
+    """Response model for due date calculation"""
+    copy_id: UUID4
+    user_id: UUID4
+    due_date: datetime
+    loan_days: int
+    calculation_method: str  # 'course_override' or 'role_policy'
+    role: str
 
 # --- LOAN TRANSACTIONS ---
 class LoanBase(BaseModel):

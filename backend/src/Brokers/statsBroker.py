@@ -313,13 +313,14 @@ class StatsBroker:
             result = []
             for user_id, count in top_users:
                 user_response = await asyncio.to_thread(
-                    lambda: self.client.table("users").select("full_name, university_id, role").eq("id", user_id).execute()
+                    lambda: self.client.table("users").select("full_name, university_id, role, email").eq("id", user_id).execute()
                 )
                 if user_response.data:
                     user = user_response.data[0]
                     result.append({
                         "user_id": user_id,
                         "full_name": user.get("full_name"),
+                        "email": user.get("email"),
                         "university_id": user.get("university_id"),
                         "role": user.get("role"),
                         "loan_count": count

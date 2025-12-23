@@ -12,6 +12,7 @@ import AdminCirculationPage from "./pages/AdminCirculationPage"
 import AdminRequestsPage from "./pages/AdminRequestsPage"
 import AdminCatalogingPage from "./pages/AdminCatalogingPage"
 import AdminReportsPage from "./pages/AdminReportsPage"
+import AdminConfigurationPage from "./pages/AdminConfigurationPage"
 import Layout from "./components/Layout"
 
 // Create a client with caching config
@@ -88,6 +89,7 @@ function App() {
           <Route path="requests" element={<AdminRequestsPage />} />
           <Route path="cataloging" element={<AdminCatalogingPage />} />
           <Route path="reports" element={<AdminReportsPage />} />
+          <Route path="config" element={<AdminConfigurationPage />} />
           <Route path="profile" element={<ProfilePage user={currentUser} />} />
         </Route>
         

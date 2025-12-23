@@ -1,8 +1,10 @@
 "use client"
 
 import { useState } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { createBook } from "../api/booksService"
 import { createBulkCopies } from "../api/bookCopiesService"
+import { getAllCourses, addBookToCourse } from "../api/coursesService"
 import toast from "../utils/toast"
 import Spinner from "../components/Spinner"
 import "../assets/AdminPages.css"
@@ -10,6 +12,13 @@ import "../assets/Responsive.css"
 
 function AdminCatalogingPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // Fetch all courses for dropdown
+  const { data: allCourses = [], isLoading: coursesLoading } = useQuery({
+    queryKey: ['all-courses'],
+    queryFn: () => getAllCourses(0, 500),
+    staleTime: 10 * 60 * 1000, // 10 minutes cache
+  })
   
   // Book form fields based on API schema
   const [formData, setFormData] = useState({
@@ -58,6 +67,20 @@ function AdminCatalogingPage() {
       }
       
       const newBook = await createBook(bookData)
+      
+      // Associate book with course if course_code was provided
+      if (formData.course_code) {
+        try {
+          await addBookToCourse({
+            book_id: newBook.id,
+            course_code: formData.course_code
+          })
+        } catch (err) {
+          console.error('Failed to associate book with course:', err)
+          // Don't fail the whole operation, just warn the user
+          toast.warning(`Book added, but failed to associate with course: ${err.message}`)
+        }
+      }
       
       // Create copies if specified
       if (numCopies > 0) {
@@ -216,14 +239,23 @@ function AdminCatalogingPage() {
               <div className="formRow">
                 <div className="formGroup">
                   <label htmlFor="course_code">Course Code</label>
-                  <input
-                    type="text"
+                  <select
                     id="course_code"
                     name="course_code"
                     value={formData.course_code}
                     onChange={handleInputChange}
-                    placeholder="e.g., CS101"
-                  />
+                  >
+                    <option value="">Select Course (Optional)</option>
+                    {coursesLoading ? (
+                      <option disabled>Loading courses...</option>
+                    ) : (
+                      allCourses.map(course => (
+                        <option key={course.code} value={course.code}>
+                          {course.code} - {course.name}
+                        </option>
+                      ))
+                    )}
+                  </select>
                 </div>
 
                 <div className="formGroup">

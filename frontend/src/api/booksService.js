@@ -135,6 +135,25 @@ export const getBooksWithStats = async (skip = 0, limit = 50) => {
   }
 };
 
+/**
+ * Get books with copy statistics AND course associations (optimized endpoint)
+ * Uses the backend's /books/with-stats-and-courses endpoint for a single DB query
+ * @param {number} skip - Number of books to skip
+ * @param {number} limit - Maximum number of books to return
+ * @returns {Promise<Array>} List of books with copy_stats and courses included
+ */
+export const getBooksWithStatsAndCourses = async (skip = 0, limit = 50) => {
+  try {
+    const response = await apiClient.get('/books/with-stats-and-courses', {
+      params: { skip, limit }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Get books with stats and courses error:', error);
+    throw error;
+  }
+};
+
 export default {
   getBooks,
   getBook,
@@ -144,4 +163,5 @@ export default {
   partialUpdateBook,
   deleteBook,
   getBooksWithStats,
+  getBooksWithStatsAndCourses,
 };

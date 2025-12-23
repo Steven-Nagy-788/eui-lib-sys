@@ -24,6 +24,21 @@ export const getAllLoans = async (skip = 0, limit = 100) => {
 };
 
 /**
+ * Calculate due date for a book copy loan
+ * @param {number} copyId - Copy ID
+ * @returns {Promise<Object>} Due date calculation details
+ */
+export const calculateDueDate = async (copyId) => {
+  try {
+    const response = await apiClient.get(`/loans/calculate-due-date/${copyId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Calculate due date error:', error);
+    throw error;
+  }
+};
+
+/**
  * Get loans by status
  * @param {string} status - Loan status (pending, active, returned, overdue, rejected)
  * @param {number} skip - Number of loans to skip
@@ -138,16 +153,16 @@ export const approveLoan = async (loanId) => {
 };
 
 /**
- * Reject a loan request (Admin only)
+ * Cancel a loan request (User can cancel their own pending loans)
  * @param {number} loanId - Loan ID
  * @returns {Promise<Object>} Updated loan with rejected status
  */
 export const rejectLoan = async (loanId) => {
   try {
-    const response = await apiClient.post(`/loans/${loanId}/reject`);
+    const response = await apiClient.post(`/loans/${loanId}/cancel`);
     return response.data;
   } catch (error) {
-    console.error('Reject loan error:', error);
+    console.error('Cancel loan error:', error);
     throw error;
   }
 };
@@ -243,6 +258,22 @@ export const getLoanPolicy = async (role) => {
   }
 };
 
+/**
+ * Update loan policy for a specific role (Admin only)
+ * @param {string} role - User role (student, professor, ta, admin)
+ * @param {Object} policyData - Policy data (max_books, loan_days)
+ * @returns {Promise<Object>} Updated loan policy
+ */
+export const updateLoanPolicy = async (role, policyData) => {
+  try {
+    const response = await apiClient.patch(`/loans/policies/${role}`, policyData);
+    return response.data;
+  } catch (error) {
+    console.error('Update loan policy error:', error);
+    throw error;
+  }
+};
+
 export default {
   getAllLoans,
   getLoansByStatus,
@@ -259,4 +290,5 @@ export default {
   markOverdueLoans,
   getAllLoanPolicies,
   getLoanPolicy,
+  updateLoanPolicy,
 };

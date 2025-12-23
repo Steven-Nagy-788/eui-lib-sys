@@ -28,7 +28,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- 3. ENUMERATED TYPES
 CREATE TYPE user_role AS ENUM ('admin', 'student', 'professor', 'ta');
 CREATE TYPE book_status AS ENUM ('available', 'maintenance', 'lost');
-CREATE TYPE loan_status AS ENUM ('pending', 'active', 'returned', 'overdue', 'rejected');
+CREATE TYPE loan_status AS ENUM ('pending', 'active', 'canceled', 'returned', 'overdue', 'rejected');
 
 -- 4. TABLES
 

@@ -31,6 +31,11 @@ function AdminReportsPage() {
     staleTime: 5 * 60 * 1000, // Cache 5 minutes
   })
 
+  // Debug: Log top borrowers structure
+  if (topBorrowers.length > 0) {
+    console.log('Top Borrowers:', topBorrowers)
+  }
+
   const isLoading = isLoadingStats || isLoadingBorrowed || isLoadingBorrowers
 
   if (isLoading) {
@@ -205,11 +210,11 @@ function AdminReportsPage() {
                           #{index + 1}
                         </span>
                       </td>
-                      <td className="userName">{user.full_name}</td>
-                      <td>{user.email}</td>
+                      <td className="userName">{user.full_name || user.name}</td>
+                      <td>{user.email || 'N/A'}</td>
                       <td className="universityId">{user.university_id}</td>
                       <td>
-                        <strong style={{ color: '#10b981' }}>{user.borrow_count || 0}</strong>
+                        <strong style={{ color: '#10b981' }}>{user.loan_count || user.borrow_count || 0}</strong>
                       </td>
                     </tr>
                   ))}
