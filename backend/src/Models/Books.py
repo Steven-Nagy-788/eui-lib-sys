@@ -6,8 +6,8 @@ from enum import Enum
 # --- ENUMS ---
 class BookStatus(str, Enum):
     AVAILABLE = "available"
-    MAINTENANCE = "maintenance"
     LOST = "lost"
+    maintenance = "maintenance"
 
 # --- BOOKS (Catalog) ---
 class BookBase(BaseModel):
@@ -16,6 +16,7 @@ class BookBase(BaseModel):
     call_number: Optional[str] = None
     title: str
     author: str
+    faculty: Optional[str] = None
     publisher: Optional[str] = None
     publication_year: Optional[int] = None
     book_pic_url: Optional[str] = None
@@ -27,6 +28,18 @@ class BookCreate(BookBase):
 class BookResponse(BookBase):
     id: UUID4
     created_at: datetime
+
+class BookCopyStats(BaseModel):
+    total: int = 0
+    available: int = 0
+    reference: int = 0
+    circulating: int = 0
+    checked_out: int = 0
+
+class BookWithStatsResponse(BookBase):
+    id: UUID4
+    created_at: datetime
+    copy_stats: BookCopyStats
 
 # --- COPIES (Inventory) ---
 class BookCopyBase(BaseModel):
@@ -45,6 +58,15 @@ class BookCopyResponse(BookCopyBase):
     id: UUID4
     accession_number: int  # The auto-generated barcode (10001)
     created_at: datetime
+
+class BookCopyWithBorrowerInfo(BookCopyBase):
+    """Book copy with borrower information for admin view"""
+    id: UUID4
+    accession_number: int
+    created_at: datetime
+    current_borrower_name: Optional[str] = None
+    current_borrower_id: Optional[str] = None
+    current_loan_id: Optional[UUID4] = None
 
 # --- LOGIC INPUTS ---
 class AddInventoryRequest(BaseModel):

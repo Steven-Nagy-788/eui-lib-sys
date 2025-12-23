@@ -2,15 +2,16 @@ from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import List
 from uuid import UUID
 
-from ..dependencies import get_book_copy_service
-from ..auth import require_admin, get_current_user
+from ..utils.dependencies import get_book_copy_service
+from ..utils.auth import require_admin, get_current_user
 from ..Services.bookCopyService import BookCopyService
 from ..Models.Books import (
     BookCopyCreate, 
     BookCopyResponse, 
     BookCopyUpdate, 
     BookStatus,
-    AddInventoryRequest
+    AddInventoryRequest,
+    BookCopyWithBorrowerInfo
 )
 
 router = APIRouter(
@@ -30,17 +31,15 @@ async def get_all_copies(
     return await service.RetrieveAllCopies(skip=skip, limit=limit)
 
 
-@router.get("/book/{book_id}", response_model=List[BookCopyResponse])
+@router.get("/book/{book_id}", response_model=List[BookCopyWithBorrowerInfo])
 async def get_copies_by_book(
     book_id: UUID,
-    available_only: bool = Query(False, description="Filter to only available copies"),
+    available_only: bool = Query(False, description="Filter to only available circulating copies"),
     service: BookCopyService = Depends(get_book_copy_service),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get all copies of a specific book"""
-    if available_only:
-        return await service.RetrieveAvailableCopiesByBookId(book_id)
-    return await service.RetrieveCopiesByBookId(book_id)
+    """Get all copies of a specific book with borrower info"""
+    return await service.RetrieveCopiesByBookIdWithBorrowerInfo(book_id, available_only)
 
 
 @router.get("/book/{book_id}/stats")
@@ -138,6 +137,30 @@ async def update_copy(
 ):
     """Update a book copy - status, reference flag, etc. (Admin only)"""
     try:
+        updated_copy = await service.ModifyCopy(copy_id, copy_update)
+        if updated_copy is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Copy with id {copy_id} not found"
+            )
+        return updated_copy
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.patch("/{copy_id}/status/{status}", response_model=BookCopyResponse)
+async def update_copy_status(
+    copy_id: UUID,
+    status: BookStatus,
+    service: BookCopyService = Depends(get_book_copy_service),
+    current_user: dict = Depends(require_admin)
+):
+    """Update copy status (available, borrowed, maintenance, lost) - Admin only"""
+    try:
+        copy_update = BookCopyUpdate(status=status)
         updated_copy = await service.ModifyCopy(copy_id, copy_update)
         if updated_copy is None:
             raise HTTPException(

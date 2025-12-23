@@ -22,6 +22,47 @@ class BookCopyBroker:
         response = await asyncio.to_thread(_fetch)
         return response.data if response.data else []
     
+    async def SelectCopiesByBookIdWithBorrowerInfo(self, book_id: UUID, available_only: bool = False) -> list[dict]:
+        """Get copies with borrower information"""
+        def _fetch():
+            query = self.client.table("book_copies").select(
+                "*,"
+                "loans!left(id, user_id, status, users!left(full_name, university_id))"
+            ).eq("book_id", str(book_id))
+            
+            if available_only:
+                query = query.eq("is_reference", False).eq("status", "available")
+            
+            return query.execute()
+        
+        response = await asyncio.to_thread(_fetch)
+        if not response.data:
+            return []
+        
+        # Flatten and filter to only include active loans
+        result = []
+        for copy in response.data:
+            loans = copy.pop('loans', [])
+            # Find active loan
+            active_loan = next((l for l in loans if l.get('status') == 'active'), None) if loans else None
+            
+            flattened = {
+                **copy,
+                'current_borrower_name': None,
+                'current_borrower_id': None,
+                'current_loan_id': None
+            }
+            
+            if active_loan:
+                user = active_loan.get('users', {}) if active_loan else {}
+                flattened['current_borrower_name'] = user.get('full_name') if user else None
+                flattened['current_borrower_id'] = user.get('university_id') if user else None
+                flattened['current_loan_id'] = active_loan.get('id')
+            
+            result.append(flattened)
+        
+        return result
+    
     async def SelectAvailableCopiesByBookId(self, book_id: UUID) -> list[dict]:
         """Get all available copies of a specific book"""
         def _fetch():

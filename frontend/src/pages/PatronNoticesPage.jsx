@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react"
 import { getUserLoans } from "../api/loansService"
-import { getBook } from "../api/booksService"
-import { getUserFromToken } from "../api/authService"
+import { getUserFromToken, getUserDashboard } from "../api/authService"
 import "../assets/PatronPages.css"
+import "../assets/Responsive.css"
 
 function PatronNoticesPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -16,22 +16,39 @@ function PatronNoticesPage() {
   const loadNotices = async () => {
     try {
       setIsLoading(true)
-      const currentUser = getUserFromToken()
-      const activeLoans = await getUserLoans(currentUser.id, 'active')
-      const pendingLoans = await getUserLoans(currentUser.id, 'pending')
-      const overdueLoans = await getUserLoans(currentUser.id, 'overdue')
+      const tokenUser = getUserFromToken()
+      
+      // Fetch fresh user data from API to get current blacklist status
+      const dashboardData = await getUserDashboard()
+      const currentUser = dashboardData.user
+      
+      const activeLoans = await getUserLoans(tokenUser.id, 'active')
+      const pendingLoans = await getUserLoans(tokenUser.id, 'pending')
+      const overdueLoans = await getUserLoans(tokenUser.id, 'overdue')
       
       const allNotices = []
       
+      // Check if user is blacklisted (using fresh data from API)
+      if (currentUser.is_blacklisted) {
+        allNotices.push({
+          id: 'blacklist-notice',
+          type: 'error',
+          title: 'Account Restricted',
+          message: `Your account has been blacklisted. Reason: ${currentUser.blacklist_reason || 'No reason provided'}. You cannot reserve books while blacklisted. Please contact the library administrator.`,
+          bookTitle: '',
+          date: new Date().toLocaleDateString(),
+        })
+      }
+      
       // Overdue notices
       for (const loan of overdueLoans) {
-        const book = await getBook(loan.book_copy?.book_id)
+        const bookTitle = loan.book_title || 'Unknown Book'
         allNotices.push({
           id: `overdue-${loan.id}`,
           type: "overdue",
           title: "Overdue Warning",
-          message: `Your book '${book.title}' is overdue. Please return it immediately to avoid additional infractions.`,
-          bookTitle: book.title,
+          message: `Your book '${bookTitle}' is overdue. Please return it immediately to avoid additional penalties.`,
+          bookTitle: bookTitle,
           date: new Date(loan.due_date).toLocaleDateString(),
           loan
         })
@@ -44,13 +61,13 @@ function PatronNoticesPage() {
         const daysUntilDue = Math.ceil((dueDate - today) / (1000 * 60 * 60 * 24))
         
         if (daysUntilDue <= 3 && daysUntilDue >= 0) {
-          const book = await getBook(loan.book_copy?.book_id)
+          const bookTitle = loan.book_title || 'Unknown Book'
           allNotices.push({
             id: `approaching-${loan.id}`,
             type: "approaching",
             title: "Due Date Approaching",
-            message: `Your book '${book.title}' is due on ${dueDate.toLocaleDateString()}. Please return it soon.`,
-            bookTitle: book.title,
+            message: `Your book '${bookTitle}' is due on ${dueDate.toLocaleDateString()}. Please return it soon.`,
+            bookTitle: bookTitle,
             date: today.toLocaleDateString(),
             loan
           })
@@ -59,13 +76,13 @@ function PatronNoticesPage() {
       
       // Pending requests
       for (const loan of pendingLoans) {
-        const book = await getBook(loan.book_copy?.book_id)
+        const bookTitle = loan.book_title || 'Unknown Book'
         allNotices.push({
           id: `pending-${loan.id}`,
           type: "info",
           title: "Request Pending",
-          message: `Your reservation request for '${book.title}' is awaiting admin approval.`,
-          bookTitle: book.title,
+          message: `Your reservation request for '${bookTitle}' is awaiting admin approval.`,
+          bookTitle: bookTitle,
           date: new Date(loan.request_date).toLocaleDateString(),
           loan
         })

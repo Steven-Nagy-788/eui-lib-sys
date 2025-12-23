@@ -35,6 +35,42 @@ class LoanBroker:
         response = await asyncio.to_thread(_fetch)
         return response.data if response.data else []
     
+    async def SelectLoansByUserWithBookInfo(self, user_id: UUID, status: Optional[str] = None) -> list[dict]:
+        """Get all loans for a user with book details (JOIN)"""
+        def _fetch():
+            # Use Supabase's JOIN syntax to get book info
+            query = self.client.table("loans").select(
+                "*,"
+                "book_copies!inner(accession_number, book_id, books!inner(id, title, author, isbn, publisher, book_pic_url))"
+            ).eq("user_id", str(user_id))
+            if status:
+                query = query.eq("status", status)
+            return query.order("request_date", desc=True).execute()
+        
+        response = await asyncio.to_thread(_fetch)
+        if not response.data:
+            return []
+        
+        # Flatten the nested structure
+        result = []
+        for loan in response.data:
+            book_copy = loan.pop('book_copies', {})
+            book = book_copy.get('books', {}) if book_copy else {}
+            
+            flattened = {
+                **loan,
+                'copy_accession_number': book_copy.get('accession_number') if book_copy else None,
+                'book_id': book.get('id') if book else None,
+                'book_title': book.get('title', 'Unknown Book') if book else 'Unknown Book',
+                'book_author': book.get('author', 'Unknown Author') if book else 'Unknown Author',
+                'book_isbn': book.get('isbn', '') if book else '',
+                'book_publisher': book.get('publisher') if book else None,
+                'book_pic_url': book.get('book_pic_url') if book else None,
+            }
+            result.append(flattened)
+        
+        return result
+    
     async def SelectLoansByCopy(self, copy_id: UUID) -> list[dict]:
         """Get all loans for a specific book copy"""
         def _fetch():
@@ -54,6 +90,40 @@ class LoanBroker:
             )
         response = await asyncio.to_thread(_fetch)
         return response.data if response.data else []
+    
+    async def SelectLoansByStatusWithBookInfo(self, status: str, skip: int = 0, limit: int = 100) -> list[dict]:
+        """Get all loans with a specific status with book details (JOIN)"""
+        def _fetch():
+            # Use Supabase's JOIN syntax to get book info
+            query = self.client.table("loans").select(
+                "*,"
+                "book_copies!inner(accession_number, book_id, books!inner(id, title, author, isbn, publisher, book_pic_url))"
+            ).eq("status", status)
+            return query.range(skip, skip + limit - 1).order("request_date", desc=True).execute()
+        
+        response = await asyncio.to_thread(_fetch)
+        if not response.data:
+            return []
+        
+        # Flatten the nested structure
+        result = []
+        for loan in response.data:
+            book_copy = loan.pop('book_copies', {})
+            book = book_copy.get('books', {}) if book_copy else {}
+            
+            flattened = {
+                **loan,
+                'copy_accession_number': book_copy.get('accession_number') if book_copy else None,
+                'book_id': book.get('id') if book else None,
+                'book_title': book.get('title', 'Unknown Book') if book else 'Unknown Book',
+                'book_author': book.get('author', 'Unknown Author') if book else 'Unknown Author',
+                'book_isbn': book.get('isbn', '') if book else '',
+                'book_publisher': book.get('publisher') if book else None,
+                'book_pic_url': book.get('book_pic_url') if book else None,
+            }
+            result.append(flattened)
+        
+        return result
     
     async def SelectActiveLoansByUser(self, user_id: UUID) -> list[dict]:
         """Get all active loans for a user (pending or active status)"""

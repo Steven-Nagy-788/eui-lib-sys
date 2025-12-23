@@ -2,20 +2,21 @@ import os
 from functools import lru_cache
 from supabase import create_client, Client
 from pydantic_settings import BaseSettings
-from dotenv import load_dotenv
+from pathlib import Path
 
-# Load .env immediately
-load_dotenv()
+# Get the absolute path to the .env file in the same directory as this config.py
+env_path = Path(__file__).parent / ".env"
 
 class Settings(BaseSettings):
     SUPABASE_URL: str
     SUPABASE_KEY: str
     JWT_SECRET_KEY: str
-    JWT_ALGORITHM: str = "HS256"
-    JWT_EXPIRATION_MINUTES: int = 30
-    
+    JWT_ALGORITHM: str
+    JWT_EXPIRATION_MINUTES: int
+
     class Config:
-        env_file = ".env"
+        env_file = str(env_path)
+        env_file_encoding = 'utf-8'
 
 # 1. SETTINGS SINGLETON
 @lru_cache()

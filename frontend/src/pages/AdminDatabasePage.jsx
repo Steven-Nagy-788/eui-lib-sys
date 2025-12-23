@@ -6,6 +6,7 @@ import { deleteBook, createBook } from "../api/booksService"
 import { createBulkCopies } from "../api/bookCopiesService"
 import toast from "../utils/toast"
 import "../assets/AdminPages.css"
+import "../assets/Responsive.css"
 
 function AdminDatabasePage() {
   // Stats state

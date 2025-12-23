@@ -1,103 +1,100 @@
-"use client"
-
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom"
-import { getUserFromToken, logout as authLogout } from "./api/authService"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
+import { getUserFromToken, logout, isPatronRole, getRedirectPath } from "./utils/auth"
 import LoginPage from "./pages/LoginPage"
-import PatronBooksPage from "./pages/PatronBooksPage"
+import BooksPage from "./pages/BooksPage"
+import ProfilePage from "./pages/ProfilePage"
 import PatronBookbagPage from "./pages/PatronBookbagPage"
 import PatronNoticesPage from "./pages/PatronNoticesPage"
-import PatronProfilePage from "./pages/PatronProfilePage"
-import AdminBooksPage from "./pages/AdminBooksPage"
 import AdminPatronsPage from "./pages/AdminPatronsPage"
 import AdminCirculationPage from "./pages/AdminCirculationPage"
 import AdminRequestsPage from "./pages/AdminRequestsPage"
-import AdminDatabasePage from "./pages/AdminDatabasePage"
-import AdminProfilePage from "./pages/AdminProfilePage"
-import PatronLayout from "./components/PatronLayout"
-import AdminLayout from "./components/AdminLayout"
+import AdminCatalogingPage from "./pages/AdminCatalogingPage"
+import AdminReportsPage from "./pages/AdminReportsPage"
+import Layout from "./components/Layout"
+
+// Create a client with caching config
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 5 * 60 * 1000, // 5 minutes - data stays fresh
+      cacheTime: 10 * 60 * 1000, // 10 minutes - cache retention
+      refetchOnWindowFocus: false, // Don't refetch on tab switch
+      retry: 1, // Only retry once on failure
+    },
+  },
+})
 
 function App() {
-  const [currentUser, setCurrentUser] = useState(null)
-
-  // Check for existing auth token on mount
-  useEffect(() => {
-    const user = getUserFromToken()
-    if (user) {
-      setCurrentUser(user)
-    }
-  }, [])
+  const [currentUser, setCurrentUser] = useState(() => getUserFromToken())
 
   const handleLogin = () => {
-    // Get user from token after login
     const user = getUserFromToken()
     setCurrentUser(user)
   }
 
   const handleLogout = () => {
-    authLogout()
+    logout()
     setCurrentUser(null)
   }
 
-  // Helper to check if user is a patron (student, professor, or ta)
-  const isPatron = (role) => {
-    return role === "student" || role === "professor" || role === "ta"
-  }
-
   return (
-    <Router>
-      <Routes>
+    <QueryClientProvider client={queryClient}>
+      <Router>
+        <Routes>
         <Route
           path="/"
           element={
             currentUser ? (
-              <Navigate to={currentUser.role === "admin" ? "/admin/books" : "/patron/books"} replace />
+              <Navigate to={getRedirectPath(currentUser.role)} replace />
             ) : (
               <LoginPage onLogin={handleLogin} />
             )
           }
         />
-
+        
         {/* Patron Routes */}
         <Route
           path="/patron/*"
           element={
-            currentUser && isPatron(currentUser.role) ? (
-              <PatronLayout user={currentUser} onLogout={handleLogout} />
+            currentUser && isPatronRole(currentUser.role) ? (
+              <Layout user={currentUser} onLogout={handleLogout} />
             ) : (
               <Navigate to="/" replace />
             )
           }
         >
-          <Route path="books" element={<PatronBooksPage user={currentUser} />} />
+          <Route path="books" element={<BooksPage user={currentUser} />} />
           <Route path="bookbag" element={<PatronBookbagPage user={currentUser} />} />
           <Route path="notices" element={<PatronNoticesPage user={currentUser} />} />
-          <Route path="profile" element={<PatronProfilePage user={currentUser} />} />
+          <Route path="profile" element={<ProfilePage user={currentUser} />} />
         </Route>
-
+        
         {/* Admin Routes */}
         <Route
           path="/admin/*"
           element={
             currentUser && currentUser.role === "admin" ? (
-              <AdminLayout user={currentUser} onLogout={handleLogout} />
+              <Layout user={currentUser} onLogout={handleLogout} />
             ) : (
               <Navigate to="/" replace />
             )
           }
         >
-          <Route path="books" element={<AdminBooksPage />} />
+          <Route path="books" element={<BooksPage user={currentUser} />} />
           <Route path="patrons" element={<AdminPatronsPage />} />
           <Route path="circulation" element={<AdminCirculationPage />} />
           <Route path="requests" element={<AdminRequestsPage />} />
-          <Route path="database" element={<AdminDatabasePage />} />
-          <Route path="profile" element={<AdminProfilePage user={currentUser} />} />
+          <Route path="cataloging" element={<AdminCatalogingPage />} />
+          <Route path="reports" element={<AdminReportsPage />} />
+          <Route path="profile" element={<ProfilePage user={currentUser} />} />
         </Route>
-
-        {/* Catch all - redirect to home */}
+        
         <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </Router>
+        </Routes>
+      </Router>
+    </QueryClientProvider>
   )
 }
 

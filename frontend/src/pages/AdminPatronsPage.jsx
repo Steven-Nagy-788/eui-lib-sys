@@ -1,9 +1,12 @@
 "use client"
 
 import { useState, useMemo, useEffect, useRef, useCallback } from "react"
-import { getUsers, searchUsers, clearInfractions, addToBlacklist, removeFromBlacklist } from "../api/usersService"
+import { getUsers, searchUsers, addToBlacklist, removeFromBlacklist, getUser } from "../api/usersService"
+import { getUserLoans } from "../api/loansService"
+import Spinner from "../components/Spinner"
 import toast from "../utils/toast"
 import "../assets/AdminPages.css"
+import "../assets/Responsive.css"
 
 const mockPatrons = [
   {
@@ -14,7 +17,6 @@ const mockPatrons = [
     year: 4,
     booksOwned: 2,
     booksBorrowed: 4,
-    infractions: 0,
     blacklisted: false,
   },
   {
@@ -25,7 +27,6 @@ const mockPatrons = [
     year: null,
     booksOwned: 1,
     booksBorrowed: 0,
-    infractions: 0,
     blacklisted: false,
   },
   {
@@ -36,16 +37,15 @@ const mockPatrons = [
     year: 4,
     booksOwned: 3,
     booksBorrowed: 1,
-    infractions: 2,
     blacklisted: false,
   },
 ]
 
-function PatronCard({ patron, expandedId, onToggle, onUpdate }) {
-  const [infractions, setInfractions] = useState("")
-  const [loanPeriod, setLoanPeriod] = useState("")
+function PatronCard({ patron, expandedId, onToggle, onUpdate, onViewDetails }) {
   const [isBlacklisted, setIsBlacklisted] = useState(patron.is_blacklisted || false)
   const [isLoading, setIsLoading] = useState(false)
+  const [showBlacklistModal, setShowBlacklistModal] = useState(false)
+  const [blacklistReason, setBlacklistReason] = useState('')
   const expanded = expandedId === patron.id
   const cardRef = useRef(null)
 
@@ -62,50 +62,45 @@ function PatronCard({ patron, expandedId, onToggle, onUpdate }) {
     onToggle(expanded ? null : patron.id)
   }
 
-  const handleRemoveInfractions = async () => {
-    if (!infractions || parseInt(infractions) <= 0) {
-      toast.warning('Please enter a valid number of infractions to remove')
+  const handleBlacklist = async () => {
+    if (!isBlacklisted) {
+      // Show modal to get reason
+      setShowBlacklistModal(true)
       return
     }
     
+    // Whitelist without reason
     try {
       setIsLoading(true)
-      await clearInfractions(patron.id, parseInt(infractions))
-      toast.success('Infractions cleared successfully')
-      setInfractions("")
+      await removeFromBlacklist(patron.id)
+      toast.success('User whitelisted successfully')
+      setIsBlacklisted(false)
       if (onUpdate) onUpdate()
     } catch (error) {
-      console.error('Failed to clear infractions:', error)
-      toast.error(error.message || 'Failed to clear infractions')
+      console.error('Failed to whitelist user:', error)
+      toast.error(error.message || 'Failed to whitelist user')
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleBlacklist = async () => {
-    const action = isBlacklisted ? 'whitelist' : 'blacklist'
-    const reason = isBlacklisted ? '' : prompt('Enter reason for blacklisting:')
-    
-    if (!isBlacklisted && !reason) {
-      return // User cancelled
+  const handleConfirmBlacklist = async () => {
+    if (!blacklistReason.trim()) {
+      toast.warning('Please enter a reason for blacklisting')
+      return
     }
     
     try {
       setIsLoading(true)
-      if (isBlacklisted) {
-        await removeFromBlacklist(patron.id)
-        toast.success('User whitelisted successfully')
-      } else {
-        await addToBlacklist(patron.id, reason)
-        toast.success('User blacklisted successfully')
-      }
-      setIsBlacklisted(!isBlacklisted)
-      setInfractions("")
-      setLoanPeriod("")
+      await addToBlacklist(patron.id, blacklistReason)
+      toast.success('User blacklisted successfully')
+      setIsBlacklisted(true)
+      setShowBlacklistModal(false)
+      setBlacklistReason('')
       if (onUpdate) onUpdate()
     } catch (error) {
-      console.error(`Failed to ${action} user:`, error)
-      toast.error(error.message || `Failed to ${action} user`)
+      console.error('Failed to blacklist user:', error)
+      toast.error(error.message || 'Failed to blacklist user')
     } finally {
       setIsLoading(false)
     }
@@ -141,8 +136,6 @@ function PatronCard({ patron, expandedId, onToggle, onUpdate }) {
               <span className="patronBasicInfoValue">{patron.active_loans_count || 0}</span>
               <span className="patronBasicInfoLabel">Total Loans:</span>
               <span className="patronBasicInfoValue">{patron.total_loans_count || 0}</span>
-              <span className="patronBasicInfoLabel">Infractions:</span>
-              <span className="patronBasicInfoValue">{patron.infractions || 0}</span>
             </div>
           </div>
         </div>
@@ -152,36 +145,91 @@ function PatronCard({ patron, expandedId, onToggle, onUpdate }) {
         <div className="patronCardExpanded">
           <div className="patronExpandedContent">
             <div className="patronExpandedRow">
-              <label className="patronInputLabel">Remove Infractions:</label>
-              <input
-                type="number"
-                placeholder="Enter number"
-                value={infractions}
-                onChange={(e) => setInfractions(e.target.value)}
-                className="patronInput"
-              />
-              <button onClick={handleRemoveInfractions} className="patronEnterButton" disabled={isLoading}>
-                {isLoading ? 'Processing...' : 'Enter'}
+              <button 
+                onClick={() => onViewDetails(patron)}
+                style={{
+                  padding: '10px 20px',
+                  background: '#2563eb',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  fontSize: '14px'
+                }}
+              >
+                📊 View Full Details & Loan History
               </button>
             </div>
-
+            
             <div className="patronExpandedRow">
-              <label className="patronInputLabel">Extend Loan Period:</label>
-              <input
-                type="number"
-                placeholder="Enter days"
-                value={loanPeriod}
-                onChange={(e) => setLoanPeriod(e.target.value)}
-                className="patronInput"
-                disabled={true}
-                title="Feature coming soon"
-              />
               <button
                 onClick={handleBlacklist}
                 className={isBlacklisted ? "patronWhitelistButton" : "patronBlacklistButton"}
                 disabled={isLoading}
+                style={{
+                  padding: '10px 20px',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  fontSize: '14px',
+                  flex: '0 0 auto'
+                }}
               >
                 {isLoading ? 'Processing...' : (isBlacklisted ? "Whitelist" : "Blacklist")}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Blacklist Reason Modal */}
+      {showBlacklistModal && (
+        <div className="modal" style={{ zIndex: 10000 }} onClick={() => { setShowBlacklistModal(false); setBlacklistReason(''); }}>
+          <div className="modalContent" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '500px' }}>
+            <div className="modalHeader">
+              <h2 className="modalTitle">Blacklist User</h2>
+              <button className="modalCloseButton" onClick={() => { setShowBlacklistModal(false); setBlacklistReason(''); }}>×</button>
+            </div>
+            <div className="modalBody">
+              <p style={{ marginBottom: '12px', color: '#6b7280' }}>
+                You are about to blacklist <strong>{patron.full_name || patron.email}</strong>. Please provide a reason:
+              </p>
+              <textarea
+                value={blacklistReason}
+                onChange={(e) => setBlacklistReason(e.target.value)}
+                placeholder="Enter reason for blacklisting..."
+                style={{
+                  width: '100%',
+                  minHeight: '100px',
+                  padding: '12px',
+                  border: '1px solid #d1d5db',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontFamily: 'inherit',
+                  resize: 'vertical'
+                }}
+              />
+              <p style={{ marginTop: '12px', fontSize: '13px', color: '#dc2626' }}>
+                ⚠️ Blacklisted users will not be able to reserve books.
+              </p>
+            </div>
+            <div className="modalFooter">
+              <button 
+                className="buttonSecondary" 
+                onClick={() => { setShowBlacklistModal(false); setBlacklistReason(''); }}
+                disabled={isLoading}
+              >
+                Cancel
+              </button>
+              <button 
+                className="buttonPrimary" 
+                onClick={handleConfirmBlacklist}
+                disabled={isLoading || !blacklistReason.trim()}
+                style={{ background: '#dc2626' }}
+              >
+                {isLoading ? 'Processing...' : 'Blacklist User'}
               </button>
             </div>
           </div>
@@ -194,11 +242,16 @@ function PatronCard({ patron, expandedId, onToggle, onUpdate }) {
 function AdminPatronsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [faculty, setFaculty] = useState("all")
+  const [blacklistFilter, setBlacklistFilter] = useState("all")
   const [sortBy, setSortBy] = useState("az")
   const [expandedId, setExpandedId] = useState(null)
   const [users, setUsers] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
+  const [selectedPatron, setSelectedPatron] = useState(null)
+  const [patronDetails, setPatronDetails] = useState(null)
+  const [patronLoans, setPatronLoans] = useState([])
+  const [isLoadingDetails, setIsLoadingDetails] = useState(false)
   const containerRef = useRef(null)
   const searchTimeoutRef = useRef(null)
 
@@ -273,6 +326,13 @@ function AdminPatronsPage() {
       filtered = filtered.filter((patron) => patron.role === faculty)
     }
 
+    // Filter by blacklist status
+    if (blacklistFilter === "blacklisted") {
+      filtered = filtered.filter((patron) => patron.is_blacklisted === true)
+    } else if (blacklistFilter === "non-blacklisted") {
+      filtered = filtered.filter((patron) => !patron.is_blacklisted)
+    }
+
     if (sortBy === "az") {
       filtered.sort((a, b) => (a.full_name || a.email).localeCompare(b.full_name || b.email))
     } else if (sortBy === "za") {
@@ -280,7 +340,28 @@ function AdminPatronsPage() {
     }
 
     return filtered
-  }, [users, faculty, sortBy])
+  }, [users, faculty, blacklistFilter, sortBy])
+
+  const handleViewDetails = async (patron) => {
+    setSelectedPatron(patron)
+    setIsLoadingDetails(true)
+    try {
+      // Fetch full patron details and loan history
+      const [details, loans] = await Promise.all([
+        getUser(patron.id),
+        getUserLoans(patron.id)
+      ])
+      setPatronDetails(details)
+      setPatronLoans(loans)
+    } catch (err) {
+      console.error('Failed to fetch patron details:', err)
+      toast.error('Failed to load patron details')
+      setPatronDetails(patron) // Fallback to basic info
+      setPatronLoans([])
+    } finally {
+      setIsLoadingDetails(false)
+    }
+  }
 
   return (
     <div className="adminPatronsContainer" ref={containerRef}>
@@ -293,6 +374,12 @@ function AdminPatronsPage() {
             <option value="student">Students</option>
             <option value="professor">Professors</option>
             <option value="ta">Teaching Assistants</option>
+          </select>
+
+          <select className="adminPatronsSelect" value={blacklistFilter} onChange={(e) => setBlacklistFilter(e.target.value)}>
+            <option value="all">All Patrons</option>
+            <option value="blacklisted">Blacklisted Only</option>
+            <option value="non-blacklisted">Non-Blacklisted</option>
           </select>
 
           <select className="adminPatronsSelect" value={sortBy} onChange={(e) => setSortBy(e.target.value)}>
@@ -340,11 +427,240 @@ function AdminPatronsPage() {
         ) : (
           <div className="adminPatronsList">
             {filteredAndSortedPatrons.map((patron) => (
-              <PatronCard key={patron.id} patron={patron} expandedId={expandedId} onToggle={setExpandedId} onUpdate={loadUsers} />
+              <PatronCard 
+                key={patron.id} 
+                patron={patron} 
+                expandedId={expandedId} 
+                onToggle={setExpandedId} 
+                onUpdate={loadUsers} 
+                onViewDetails={handleViewDetails}
+              />
             ))}
           </div>
         )}
       </div>
+
+      {/* Patron Detail Modal */}
+      {selectedPatron && (
+        <div className="modal" onClick={() => { setSelectedPatron(null); setPatronDetails(null); setPatronLoans([]); }}>
+          <div 
+            className="modalContent" 
+            style={{ maxWidth: '900px', maxHeight: '80vh', overflow: 'auto' }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="modalHeader">
+              <h2 className="modalTitle">Patron Details</h2>
+              <button 
+                className="modalCloseButton" 
+                onClick={() => { setSelectedPatron(null); setPatronDetails(null); setPatronLoans([]); }}
+              >
+                ×
+              </button>
+            </div>
+
+            <div className="modalBody">
+              {isLoadingDetails ? (
+                <div style={{ padding: '40px', textAlign: 'center' }}>
+                  <Spinner size="large" />
+                  <p style={{ marginTop: '16px' }}>Loading patron information...</p>
+                </div>
+              ) : patronDetails ? (
+                <>
+                  {/* Personal Information */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
+                      Personal Information
+                    </h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                      <div>
+                        <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Full Name</label>
+                        <p style={{ margin: 0, fontWeight: '500' }}>{patronDetails.full_name || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>University ID</label>
+                        <p style={{ margin: 0, fontWeight: '500' }}>{patronDetails.university_id || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Email</label>
+                        <p style={{ margin: 0, fontWeight: '500' }}>{patronDetails.email}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Role</label>
+                        <p style={{ margin: 0, fontWeight: '500', textTransform: 'capitalize' }}>{patronDetails.role}</p>
+                      </div>
+                      <div>
+                        <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Status</label>
+                        <p style={{ margin: 0, fontWeight: '500' }}>
+                          {patronDetails.is_blacklisted ? (
+                            <span style={{ color: '#dc2626' }}>⛔ Blacklisted</span>
+                          ) : (
+                            <span style={{ color: '#10b981' }}>✓ Active</span>
+                          )}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Statistics */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
+                      Statistics
+                    </h3>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '12px' }}>
+                      <div style={{ background: '#eff6ff', padding: '16px', borderRadius: '8px', textAlign: 'center' }}>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '700', color: '#2563eb' }}>
+                          {patronLoans.filter(l => l.status === 'active' || l.status === 'overdue').length}
+                        </p>
+                        <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Active Loans</p>
+                      </div>
+                      <div style={{ background: '#f0fdf4', padding: '16px', borderRadius: '8px', textAlign: 'center' }}>
+                        <p style={{ margin: '0 0 4px 0', fontSize: '24px', fontWeight: '700', color: '#10b981' }}>
+                          {patronLoans.length}
+                        </p>
+                        <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Total Loans</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Active Loans */}
+                  <div style={{ marginBottom: '24px' }}>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
+                      Currently Borrowed ({patronLoans.filter(l => l.status === 'active').length})
+                    </h3>
+                    {patronLoans.filter(l => l.status === 'active').length === 0 ? (
+                      <p style={{ color: '#6b7280', fontStyle: 'italic' }}>No active loans</p>
+                    ) : (
+                      <div style={{ maxHeight: '200px', overflow: 'auto' }}>
+                        <table style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid #e5e7eb' }}>
+                              <th style={{ textAlign: 'left', padding: '8px', fontWeight: '600' }}>Book</th>
+                              <th style={{ textAlign: 'left', padding: '8px', fontWeight: '600' }}>Borrowed</th>
+                              <th style={{ textAlign: 'left', padding: '8px', fontWeight: '600' }}>Due Date</th>
+                              <th style={{ textAlign: 'left', padding: '8px', fontWeight: '600' }}>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {patronLoans.filter(l => l.status === 'active').map((loan) => (
+                              <tr key={loan.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                <td style={{ padding: '8px' }}>
+                                  <div>
+                                    <p style={{ margin: 0, fontWeight: '500' }}>{loan.book_title || 'Unknown Book'}</p>
+                                    <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Copy #{loan.copy_accession_number || loan.book_copy_id}</p>
+                                  </div>
+                                </td>
+                                <td style={{ padding: '8px', color: '#6b7280' }}>
+                                  {loan.loan_date ? new Date(loan.loan_date).toLocaleDateString() : 'N/A'}
+                                </td>
+                                <td style={{ padding: '8px' }}>
+                                  {loan.due_date ? (
+                                    <span style={{ 
+                                      color: new Date(loan.due_date) < new Date() ? '#dc2626' : '#6b7280'
+                                    }}>
+                                      {new Date(loan.due_date).toLocaleDateString()}
+                                    </span>
+                                  ) : 'N/A'}
+                                </td>
+                                <td style={{ padding: '8px' }}>
+                                  {loan.is_overdue ? (
+                                    <span style={{ color: '#dc2626', fontWeight: '500' }}>⚠️ Overdue</span>
+                                  ) : (
+                                    <span style={{ color: '#10b981' }}>✓ Active</span>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Loan History */}
+                  <div>
+                    <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', fontWeight: '600', borderBottom: '2px solid #e5e7eb', paddingBottom: '8px' }}>
+                      Loan History ({patronLoans.length} total)
+                    </h3>
+                    {patronLoans.length === 0 ? (
+                      <p style={{ color: '#6b7280', fontStyle: 'italic' }}>No loan history</p>
+                    ) : (
+                      <div style={{ maxHeight: '250px', overflow: 'auto' }}>
+                        <table style={{ width: '100%', fontSize: '14px', borderCollapse: 'collapse' }}>
+                          <thead>
+                            <tr style={{ borderBottom: '1px solid #e5e7eb', position: 'sticky', top: 0, background: 'white' }}>
+                              <th style={{ textAlign: 'left', padding: '8px', fontWeight: '600' }}>Book</th>
+                              <th style={{ textAlign: 'left', padding: '8px', fontWeight: '600' }}>Date</th>
+                              <th style={{ textAlign: 'left', padding: '8px', fontWeight: '600' }}>Status</th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {patronLoans.slice().reverse().map((loan) => (
+                              <tr key={loan.id} style={{ borderBottom: '1px solid #f3f4f6' }}>
+                                <td style={{ padding: '8px' }}>
+                                  <div>
+                                    <p style={{ margin: 0, fontWeight: '500' }}>{loan.book_title || 'Unknown Book'}</p>
+                                    <p style={{ margin: 0, fontSize: '12px', color: '#6b7280' }}>Copy #{loan.copy_accession_number || loan.book_copy_id}</p>
+                                  </div>
+                                </td>
+                                <td style={{ padding: '8px', color: '#6b7280', fontSize: '12px' }}>
+                                  {loan.loan_date ? new Date(loan.loan_date).toLocaleDateString() : 
+                                   loan.request_date ? new Date(loan.request_date).toLocaleDateString() : 'N/A'}
+                                  {loan.status === 'returned' && loan.return_date && 
+                                    ` → ${new Date(loan.return_date).toLocaleDateString()}`}
+                                  {loan.status === 'active' && loan.due_date && 
+                                    ` → ${new Date(loan.due_date).toLocaleDateString()}`}
+                                </td>
+                                <td style={{ padding: '8px' }}>
+                                  <span style={{
+                                    padding: '4px 8px',
+                                    borderRadius: '4px',
+                                    fontSize: '12px',
+                                    fontWeight: '500',
+                                    background: 
+                                      loan.status === 'active' ? '#dcfce7' :
+                                      loan.status === 'returned' ? '#f3f4f6' :
+                                      loan.status === 'pending' ? '#fef3c7' :
+                                      loan.status === 'rejected' ? '#fee2e2' :
+                                      '#fecaca',
+                                    color:
+                                      loan.status === 'active' ? '#166534' :
+                                      loan.status === 'returned' ? '#6b7280' :
+                                      loan.status === 'pending' ? '#92400e' :
+                                      loan.status === 'rejected' ? '#991b1b' :
+                                      '#991b1b'
+                                  }}>
+                                    {loan.status === 'active' ? 'Active' :
+                                     loan.status === 'returned' ? 'Returned' :
+                                     loan.status === 'pending' ? 'Pending' :
+                                     loan.status === 'rejected' ? 'Rejected' :
+                                     loan.status === 'overdue' ? 'Overdue' :
+                                     loan.status.charAt(0).toUpperCase() + loan.status.slice(1)}
+                                  </span>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <p style={{ color: '#6b7280' }}>Failed to load patron details</p>
+              )}
+            </div>
+
+            <div className="modalFooter">
+              <button 
+                className="buttonPrimary" 
+                onClick={() => { setSelectedPatron(null); setPatronDetails(null); setPatronLoans([]); }}
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

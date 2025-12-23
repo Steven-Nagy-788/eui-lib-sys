@@ -4,63 +4,76 @@ from uuid import UUID
 from datetime import datetime, timedelta
 from jose import jwt
 
-from ..dependencies import get_user_service
-from ..auth import require_admin, get_current_user
+from ..utils.dependencies import get_user_service
+from ..utils.auth import require_admin, get_current_user
 from ..Services.userService import UserService
-from ..Models.Users import UserCreate, UserResponse, UserLogin, Token, UserUpdate
-from ..config import get_settings
+from ..Models.Users import UserCreate, UserResponse, UserLogin, Token, UserUpdate, UserDashboardResponse
+from ..utils.config import get_settings
 
 router = APIRouter(
     prefix="/users",
     tags=["users"]
 )
 
-
 @router.get("/", response_model=List[UserResponse])
 async def get_users(
     skip: int = 0,
     limit: int = 10,
-    service: UserService = Depends(get_user_service)
+    service: UserService = Depends(get_user_service),
+    current_user: dict = Depends(require_admin)
 ):
     return await service.RetrieveAllUsers(skip=skip, limit=limit)
-
 
 @router.post("/login", response_model=Token)
 async def login(
     credentials: UserLogin,
     service: UserService = Depends(get_user_service)
 ):
-    """Login with email and password, returns JWT token"""
     user = await service.AuthenticateUser(credentials.email, credentials.password)
-    
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
     settings = get_settings()
     expires = datetime.utcnow() + timedelta(minutes=settings.JWT_EXPIRATION_MINUTES)
-    
     token_data = {
         "id": str(user.id),
-        "uniId": user.university_id,
-        "email": user.email,
-        "role": user.role.value,
+        "role": user.role,
         "exp": expires
     }
-    
     access_token = jwt.encode(token_data, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
-    
     return Token(access_token=access_token, token_type="bearer")
 
+@router.get("/me", response_model=UserResponse)
+async def get_current_user_info(
+    service: UserService = Depends(get_user_service),
+    current_user: dict = Depends(get_current_user)
+):
+    user_id = UUID(current_user["id"])
+    user = await service.RetrieveUserById(user_id)
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
+
+@router.get("/me/dashboard", response_model=UserDashboardResponse)
+async def get_user_dashboard(
+    service: UserService = Depends(get_user_service),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get user profile with loan statistics"""
+    user_id = UUID(current_user["id"])
+    dashboard = await service.RetrieveUserDashboard(user_id)
+    if dashboard is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    return dashboard
 
 @router.get("/{user_id}", response_model=UserResponse)
 async def get_user(
     user_id: UUID,
     service: UserService = Depends(get_user_service),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(require_admin)
 ):
     user = await service.RetrieveUserById(user_id)
     if user is None:
@@ -82,7 +95,6 @@ async def create_user(
             detail=str(e)
         )
 
-
 @router.put("/{user_id}", response_model=UserResponse)
 async def update_user(
     user_id: UUID,
@@ -103,7 +115,6 @@ async def update_user(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-
 
 @router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_user(

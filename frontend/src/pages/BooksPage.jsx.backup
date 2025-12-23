@@ -1,0 +1,394 @@
+import { useState, useEffect, useMemo } from "react"
+import { getBooksWithStats, searchBooks } from "../api/booksService"
+import { getCopyStats } from "../api/bookCopiesService"
+import { createLoanRequest } from "../api/loansService"
+import { getUserFromToken } from "../utils/auth"
+import { isPatronRole } from "../utils/auth"
+import Spinner from "../components/Spinner"
+import toast from "../utils/toast"
+import "../assets/AdminPages.css"
+import "../assets/PatronPages.css"
+
+function BooksPage({ user }) {
+  const [books, setBooks] = useState([])
+  const [searchQuery, setSearchQuery] = useState("")
+  const [facultyFilter, setFacultyFilter] = useState("all")
+  const [sortOrder, setSortOrder] = useState("az")
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
+  
+  // Patron-specific state
+  const [selectedBook, setSelectedBook] = useState(null)
+  const [isReserving, setIsReserving] = useState(false)
+  const [selectedCopyId, setSelectedCopyId] = useState(null)
+
+  const currentUser = user || getUserFromToken()
+  const isPatron = currentUser && isPatronRole(currentUser.role)
+
+  const loadBooks = async () => {
+    try {
+      setIsLoading(true)
+      setError("")
+      
+      // Use optimized /books/with-stats endpoint - single query!
+      const booksWithStats = await getBooksWithStats(0, 100)
+      
+      // Map copy_stats to the format we need
+      const formattedBooks = booksWithStats.map(book => ({
+        ...book,
+        available: book.copy_stats?.available || 0,
+        total_copies: book.copy_stats?.total || 0,
+        reference_copies: book.copy_stats?.reference || 0,
+        circulating_copies: book.copy_stats?.circulating || 0
+      }))
+      
+      setBooks(formattedBooks)
+    } catch (err) {
+      console.error('Failed to load books:', err)
+      setError(err.message || 'Failed to load books')
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    loadBooks()
+  }, [])
+
+  // Handle search with debouncing
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      loadBooks()
+      return
+    }
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        setIsLoading(true)
+        
+        // Search books (note: backend search may not include stats)
+        // For now, fall back to getBooksWithStats with search filter
+        // TODO: Add search parameter to /books/with-stats endpoint
+        const data = await searchBooks(searchQuery)
+        
+        // Batch process stats for search results (fallback)
+        const BATCH_SIZE = 10;
+        const booksWithStats = [];
+        
+        for (let i = 0; i < data.length; i += BATCH_SIZE) {
+          const batch = data.slice(i, i + BATCH_SIZE);
+          const batchResults = await Promise.all(
+            batch.map(async (book) => {
+              try {
+                const stats = await getCopyStats(book.id);
+                return { 
+                  ...book, 
+                  available: stats.available || 0, 
+                  total_copies: stats.total || 0 
+                };
+              } catch {
+                return { ...book, available: 0, total_copies: 0 };
+              }
+            })
+          );
+          booksWithStats.push(...batchResults);
+        }
+        
+        setBooks(booksWithStats)
+      } catch (err) {
+        console.error('Search failed:', err)
+        setError(err.message || 'Search failed')
+      } finally {
+        setIsLoading(false)
+      }
+    }, 500)
+
+    return () => clearTimeout(timeoutId)
+  }, [searchQuery])
+
+  const filteredAndSortedBooks = useMemo(() => {
+    let filtered = [...books]
+
+    if (sortOrder === "az" || sortOrder === "a-z") {
+      filtered.sort((a, b) => a.title.localeCompare(b.title))
+    } else if (sortOrder === "za" || sortOrder === "z-a") {
+      filtered.sort((a, b) => b.title.localeCompare(a.title))
+    }
+
+    return filtered
+  }, [books, sortOrder])
+
+  // Patron-specific handlers
+  const handleReserve = (book) => {
+    if (book.available === 0) {
+      toast.error('No copies available')
+      return
+    }
+    setSelectedBook(book)
+    setSelectedCopyId(book.copies[0]?.id || null)
+  }
+
+  const handleConfirmReservation = async () => {
+    if (!selectedCopyId) {
+      toast.error('No copy selected')
+      return
+    }
+
+    try {
+      setIsReserving(true)
+      await createLoanRequest(selectedCopyId)
+      toast.success(`Reservation submitted for ${selectedBook.title}. Awaiting approval.`)
+      setSelectedBook(null)
+      setSelectedCopyId(null)
+      loadBooks()
+    } catch (err) {
+      console.error('Reservation failed:', err)
+      toast.error(err.message || 'Failed to create reservation request')
+    } finally {
+      setIsReserving(false)
+    }
+  }
+
+  // Render based on role
+  if (isPatron) {
+    return (
+      <div className="pageContent">
+        <div className="pageHeaderCard">
+          <div className="pageHeaderContent">
+            <h1>Books</h1>
+            <div className="controlsContainer">
+              <select value={facultyFilter} onChange={(e) => setFacultyFilter(e.target.value)} className="selectInput">
+                <option value="all">All Faculties</option>
+                <option value="Computer and Informational Sciences">Computer and Informational Sciences</option>
+                <option value="Engineering">Engineering</option>
+                <option value="Business Informatics">Business Informatics</option>
+                <option value="Digital Arts and Design">Digital Arts and Design</option>
+              </select>
+
+              <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className="selectInput">
+                <option value="a-z">A-Z</option>
+                <option value="z-a">Z-A</option>
+              </select>
+
+              <div className="searchContainer">
+                <input
+                  type="text"
+                  placeholder="Search"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="searchInput"
+                />
+                <button className="searchIconButton">
+                  <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                      d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="contentCard">
+          {error && (
+            <div className="errorMessage" style={{ padding: '20px', color: 'red', textAlign: 'center' }}>
+              {error}
+              <button onClick={loadBooks} style={{ marginLeft: '10px' }}>Retry</button>
+            </div>
+          )}
+
+          {isLoading ? (
+            <div style={{ padding: '60px', textAlign: 'center' }}>
+              <Spinner size="large" />
+              <p style={{ marginTop: '20px', color: '#6b7280' }}>Loading books...</p>
+            </div>
+          ) : filteredAndSortedBooks.length === 0 ? (
+            <div style={{ padding: '40px', textAlign: 'center' }}>
+              <p>No books found</p>
+            </div>
+          ) : (
+            <div className="scrollableContent">
+              {filteredAndSortedBooks.map((book) => (
+                <div key={book.id} className="patronBookCard">
+                  <img 
+                    src={book.book_pic_url || "/placeholder.svg"} 
+                    alt={book.title} 
+                    className="patronBookImage"
+                    onError={(e) => { e.target.src = "/placeholder.svg" }} 
+                  />
+
+                  <div className="patronBookDetails">
+                    <h3 className="patronBookTitle">{book.title}</h3>
+                    <p className="patronBookAuthor">{book.author}</p>
+
+                    <div className="patronBookInfo">
+                      <div className="patronBookInfoGrid">
+                        <div className="patronBookInfoItem">
+                          <span className="patronBookInfoLabel">Publisher:</span>
+                          <p className="patronBookInfoValue">{book.publisher || 'N/A'}</p>
+                        </div>
+                        <div className="patronBookInfoItem">
+                          <span className="patronBookInfoLabel">ISBN:</span>
+                          <p className="patronBookInfoValue">{book.isbn}</p>
+                        </div>
+                      </div>
+
+                      <div className="patronBookAvailability">
+                        <span className="patronBookAvailableBadge">Available</span>
+                        <span className="patronBookAvailableCount">{book.available}</span>
+                        <button
+                          onClick={() => handleReserve(book)}
+                          className="patronReserveButton"
+                          disabled={book.available === 0}
+                        >
+                          Reserve
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {selectedBook && (
+          <div className="reservationModalOverlay" onClick={() => setSelectedBook(null)}>
+            <div className="reservationModalContent" onClick={(e) => e.stopPropagation()}>
+              <h2 className="reservationModalTitle">Confirm Reservation</h2>
+              <h3 className="reservationModalBookTitle">{selectedBook.title}</h3>
+
+              <div className="reservationModalBody">
+                <p><strong>Author:</strong> {selectedBook.author}</p>
+                <p><strong>Available Copies:</strong> {selectedBook.available}</p>
+                <p style={{ marginTop: '15px', fontSize: '14px', color: '#666' }}>
+                  Your reservation request will be sent to the admin for approval.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
+                <button onClick={() => setSelectedBook(null)} disabled={isReserving} style={{ flex: 1 }}>
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleConfirmReservation} 
+                  disabled={isReserving} 
+                  className="reservationSubmitButton" 
+                  style={{ flex: 1 }}
+                >
+                  {isReserving ? <><Spinner size="small" /> Requesting...</> : 'Submit Request'}
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  // Admin view
+  return (
+    <div className="adminBooksContainer">
+      <div className="adminBooksHeader">
+        <h1 className="adminBooksTitle">Books</h1>
+
+        <div className="adminBooksControls">
+          <select className="adminBooksSelect" value={facultyFilter} onChange={(e) => setFacultyFilter(e.target.value)}>
+            <option value="all">All Faculties</option>
+            <option value="Computer and Informational Sciences">Computer and Informational Sciences</option>
+            <option value="Engineering">Engineering</option>
+            <option value="Business Informatics">Business Informatics</option>
+            <option value="Digital Arts and Design">Digital Arts and Design</option>
+          </select>
+
+          <select className="adminBooksSelect" value={sortOrder} onChange={(e) => setSortOrder(e.target.value)}>
+            <option value="az">A-Z</option>
+            <option value="za">Z-A</option>
+          </select>
+
+          <div className="adminBooksSearchWrapper">
+            <input
+              type="text"
+              placeholder="Search by title, author, or ISBN"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="adminBooksSearchInput"
+            />
+            <button className="adminBooksSearchIcon">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div className="adminBooksContent">
+        {error && (
+          <div className="errorMessage" style={{ padding: '20px', color: 'red', textAlign: 'center' }}>
+            {error}
+            <button onClick={loadBooks} style={{ marginLeft: '10px' }}>Retry</button>
+          </div>
+        )}
+        
+        {isLoading ? (
+          <div style={{ padding: '60px', textAlign: 'center' }}>
+            <Spinner size="large" />
+            <p style={{ marginTop: '20px', color: '#6b7280' }}>Loading books...</p>
+          </div>
+        ) : filteredAndSortedBooks.length === 0 ? (
+          <div style={{ padding: '40px', textAlign: 'center' }}>
+            <p>No books found</p>
+          </div>
+        ) : (
+          <div className="adminBooksList">
+            {filteredAndSortedBooks.map((book) => (
+              <div key={book.id} className="adminBookCard">
+                <img 
+                  src={book.book_pic_url || "/placeholder.svg"} 
+                  alt={book.title} 
+                  className="adminBookImage"
+                  onError={(e) => { e.target.src = "/placeholder.svg" }}
+                />
+
+                <div className="adminBookDetails">
+                  <h3 className="adminBookTitle">{book.title}</h3>
+                  <p className="adminBookAuthor">{book.author}</p>
+
+                  <div className="adminBookInfo">
+                    <div className="adminBookInfoGrid">
+                      <div className="adminBookInfoItem">
+                        <span className="adminBookInfoLabel">Publisher:</span>
+                        <p className="adminBookInfoValue">{book.publisher || 'N/A'}</p>
+                      </div>
+                      <div className="adminBookInfoItem">
+                        <span className="adminBookInfoLabel">ISBN:</span>
+                        <p className="adminBookInfoValue">{book.isbn}</p>
+                      </div>
+                      <div className="adminBookInfoItem">
+                        <span className="adminBookInfoLabel">Call Number:</span>
+                        <p className="adminBookInfoValue">{book.call_number || 'N/A'}</p>
+                      </div>
+                      <div className="adminBookInfoItem">
+                        <span className="adminBookInfoLabel">Total Copies:</span>
+                        <p className="adminBookInfoValue">{book.total_copies || 0}</p>
+                      </div>
+                    </div>
+
+                    <div className="adminBookAvailability">
+                      <span className="adminBookAvailableBadge">Available</span>
+                      <span className="adminBookAvailableCount">{book.available || 0}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+export default BooksPage

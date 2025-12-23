@@ -1,8 +1,7 @@
-"use client"
-
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useNavigate } from "react-router-dom"
 import { login } from "../api/authService"
+import { getUserFromToken, getRedirectPath } from "../utils/auth"
 import "../assets/LoginPage.css"
 
 function LoginPage({ onLogin }) {
@@ -12,21 +11,27 @@ function LoginPage({ onLogin }) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState("")
 
+  // Check for existing valid token on component mount
+  useEffect(() => {
+    const user = getUserFromToken()
+    if (user) {
+      onLogin()
+      navigate(getRedirectPath(user.role), { replace: true })
+    }
+  }, [navigate, onLogin])
+
   const handleSubmit = async (e) => {
     e.preventDefault()
     setIsLoading(true)
     setError("")
 
     try {
-      // Login with email (or convert ID to email if needed)
       const email = idOrEmail.includes('@') ? idOrEmail : `${idOrEmail}@students.eui.edu.eg`
+      const { user } = await login(email, password)
       
-      await login(email, password)
-      
-      // Call onLogin callback - user will be retrieved from token in App.jsx
       onLogin()
+      navigate(getRedirectPath(user.role), { replace: true })
     } catch (err) {
-      console.error('Login failed:', err)
       setError(err.message || "Invalid email or password. Please try again.")
     } finally {
       setIsLoading(false)
@@ -85,10 +90,6 @@ function LoginPage({ onLogin }) {
 
             <button type="submit" className="submitButton" disabled={isLoading}>
               {isLoading ? "Signing in..." : "Sign In"}
-            </button>
-
-            <button type="button" className="forgotPasswordLink">
-              Forgot Password?
             </button>
           </form>
         </div>

@@ -4,9 +4,8 @@ from jose import JWTError, jwt
 from datetime import datetime
 from typing import Optional
 from .config import get_settings
-from .Models.Users import UserRole
+from ..Models.Users import UserRole
 
-# Security scheme for Bearer token
 security = HTTPBearer()
 
 def verify_token(token: str) -> dict:
@@ -31,16 +30,8 @@ def verify_token(token: str) -> dict:
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> dict:
-    """
-    Dependency to get current authenticated user from JWT token
-    
-    Returns user dict with: id, email, role, uniId
-    Raises 401 if token is invalid or expired
-    """
     token = credentials.credentials
     payload = verify_token(token)
-    
-    # Check if token is expired
     exp = payload.get("exp")
     if exp and datetime.utcnow().timestamp() > exp:
         raise HTTPException(
@@ -48,14 +39,8 @@ def get_current_user(
             detail="Token has expired",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
-    # Extract user info
     user_id = payload.get("id")
-    email = payload.get("email")
-    role = payload.get("role")
-    uni_id = payload.get("uniId")
-    
-    if not user_id or not email or not role:
+    if not user_id:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload",
@@ -64,9 +49,7 @@ def get_current_user(
     
     return {
         "id": user_id,
-        "email": email,
-        "role": role,
-        "uniId": uni_id
+        "role": payload.get("role"),
     }
 
 def get_current_active_user(
@@ -151,9 +134,7 @@ def get_current_user_optional(
         payload = verify_token(token)
         return {
             "id": payload.get("id"),
-            "email": payload.get("email"),
             "role": payload.get("role"),
-            "uniId": payload.get("uniId")
         }
     except HTTPException:
         return None

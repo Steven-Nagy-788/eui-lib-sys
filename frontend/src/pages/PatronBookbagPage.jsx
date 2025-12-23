@@ -1,73 +1,57 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useMemo } from "react"
+import { useQuery } from "@tanstack/react-query"
 import { getUserLoans } from "../api/loansService"
-import { getBook } from "../api/booksService"
 import { getUserFromToken } from "../api/authService"
+import Spinner from "../components/Spinner"
 import "../assets/PatronPages.css"
+import "../assets/Responsive.css"
 
 function PatronBookbagPage() {
   const [searchQuery, setSearchQuery] = useState("")
-  const [sortBy, setSortBy] = useState("all")
-  const [loans, setLoans] = useState([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState("")
+  const [activeTab, setActiveTab] = useState("current") // "current" or "history"
 
   const currentUser = getUserFromToken()
 
-  useEffect(() => {
-    if (currentUser) {
-      loadUserLoans()
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentUser])
-
-  const loadUserLoans = async () => {
-    try {
-      setIsLoading(true)
-      setError("")
-      
-      // Get all loans for current user
+  // Use React Query for loans with automatic caching
+  const { data: loans = [], isLoading, error, refetch } = useQuery({
+    queryKey: ['userLoans', currentUser?.id],
+    queryFn: async () => {
+      if (!currentUser) return []
       const loansData = await getUserLoans(currentUser.id)
+      console.log('Loaded loans:', loansData)
       
-      // Fetch book details for each loan
-      const loansWithBooks = await Promise.all(
-        loansData.map(async (loan) => {
-          try {
-            const book = await getBook(loan.copy_id) // Need to get book from copy
-            return {
-              ...loan,
-              book: book,
-            }
-          } catch {
-            return {
-              ...loan,
-              book: null,
-            }
-          }
-        })
-      )
-      
-      setLoans(loansWithBooks)
-    } catch (err) {
-      console.error('Failed to load loans:', err)
-      setError(err.message || 'Failed to load your bookbag')
-    } finally {
-      setIsLoading(false)
-    }
-  }
+      // Transform loan data with embedded book details
+      return loansData.map(loan => ({
+        ...loan,
+        book: {
+          id: loan.book_id,
+          title: loan.book_title || 'Unknown Book',
+          author: loan.book_author || 'Unknown Author',
+          publisher: loan.book_publisher,
+          isbn: loan.book_isbn,
+          book_pic_url: loan.book_pic_url
+        }
+      }))
+    },
+    enabled: !!currentUser,
+    staleTime: 30 * 1000, // Cache for 30 seconds
+  })
+
 
   const getStatusDisplay = (loan) => {
-    if (loan.status === 'pending') return 'Pending Pickup'
+    if (loan.status === 'pending') return 'Pending Approval'
     if (loan.status === 'active') {
       // Check if overdue
-      const dueDate = new Date(loan.due_date)
-      const now = new Date()
-      if (now > dueDate) return 'Overdue'
-      return 'Owned'
+      if (loan.is_overdue || (loan.due_date && new Date(loan.due_date) < new Date())) {
+        return 'Overdue'
+      }
+      return 'Borrowed'
     }
     if (loan.status === 'returned') return 'Returned'
     if (loan.status === 'rejected') return 'Rejected'
+    if (loan.status === 'overdue') return 'Overdue'
     return loan.status
   }
 
@@ -83,90 +67,169 @@ function PatronBookbagPage() {
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A'
     const date = new Date(dateString)
-    return date.toLocaleDateString("en-US", { month: "2-digit", day: "2-digit", year: "2-digit" })
+    return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   }
 
-  const filteredLoans = loans.filter((loan) => {
-    if (!loan.book) return false
-    
-    const matchesSearch =
-      loan.book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      loan.book.author.toLowerCase().includes(searchQuery.toLowerCase())
-    
-    const loanStatus = getStatusDisplay(loan).toLowerCase().replace(" ", "")
-    const matchesStatus = sortBy === "all" || loanStatus === sortBy.toLowerCase()
-    
-    return matchesSearch && matchesStatus
-  })
+  // Separate current loans (pending, active, overdue) from history (returned, rejected)
+  const { currentLoans, historyLoans } = useMemo(() => {
+    const current = loans.filter(loan => 
+      ['pending', 'active', 'overdue'].includes(loan.status) || 
+      (loan.status === 'active' && loan.is_overdue)
+    )
+    const history = loans.filter(loan => 
+      ['returned', 'rejected'].includes(loan.status)
+    )
+    return { currentLoans: current, historyLoans: history }
+  }, [loans])
+
+  // Filter based on search and active tab
+  const displayedLoans = useMemo(() => {
+    const source = activeTab === 'current' ? currentLoans : historyLoans
+    return source.filter((loan) => {
+      if (!loan.book) return false
+      const matchesSearch =
+        loan.book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        loan.book.author.toLowerCase().includes(searchQuery.toLowerCase())
+      return matchesSearch
+    })
+  }, [currentLoans, historyLoans, activeTab, searchQuery])
 
   const handleCancelReservation = (loanId) => {
-    // TODO: Implement cancel reservation
+    // TODO: Implement cancel reservation API call
     console.log(`Canceling reservation for loan ${loanId}`)
+  }
+
+  if (isLoading) {
+    return (
+      <div className="pageContent">
+        <div className="pageHeaderCard">
+          <h1>Bookbag</h1>
+        </div>
+        <div className="contentCard" style={{ padding: '60px', textAlign: 'center' }}>
+          <Spinner size="large" />
+          <p style={{ marginTop: '20px', color: '#6b7280' }}>Loading your books...</p>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="pageContent">
+        <div className="pageHeaderCard">
+          <h1>Bookbag</h1>
+        </div>
+        <div className="contentCard" style={{ padding: '40px', textAlign: 'center' }}>
+          <div style={{ color: '#ef4444', marginBottom: '20px' }}>
+            <p style={{ fontSize: '18px', fontWeight: '600' }}>Failed to load bookbag</p>
+            <p style={{ marginTop: '8px', color: '#6b7280' }}>{error.message || 'Please try again'}</p>
+          </div>
+          <button onClick={() => refetch()} className="buttonPrimary">
+            Retry
+          </button>
+        </div>
+      </div>
+    )
   }
 
   return (
     <div className="pageContent">
       <div className="pageHeaderCard">
         <div className="pageHeaderContent">
-          <h1>Bookbag</h1>
-          <div className="controlsContainer">
-            <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className="selectInput">
-              <option value="all">Sort By</option>
-              <option value="owned">Owned</option>
-              <option value="overdue">Overdue</option>
-              <option value="pendingpickup">Pending Pickup</option>
-            </select>
-
-            <div className="searchContainer">
-              <input
-                type="text"
-                placeholder="Search"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="searchInput"
-              />
-              <button className="searchIconButton">
-                <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              </button>
-            </div>
+          <div>
+            <h1>Bookbag</h1>
+            <p style={{ color: '#6b7280', marginTop: '4px', fontSize: '14px' }}>Manage your borrowed books and loan history</p>
+          </div>
+          <div className="searchContainer">
+            <input
+              type="text"
+              placeholder="Search books..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="searchInput"
+            />
+            <button className="searchIconButton">
+              <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            </button>
           </div>
         </div>
       </div>
 
-      <div className="contentCard">
-        {error && (
-          <div className="errorMessage" style={{ padding: '20px', color: 'red', textAlign: 'center' }}>
-            {error}
-            <button onClick={loadUserLoans} style={{ marginLeft: '10px' }}>Retry</button>
-          </div>
-        )}
+      {/* Tabs */}
+      <div style={{ background: 'white', borderRadius: '8px', padding: '16px 24px', marginBottom: '16px', boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)' }}>
+        <div style={{ display: 'flex', gap: '24px', borderBottom: '2px solid #e5e7eb' }}>
+          <button
+            onClick={() => setActiveTab('current')}
+            style={{
+              padding: '12px 0',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'current' ? '3px solid #2563eb' : '3px solid transparent',
+              color: activeTab === 'current' ? '#2563eb' : '#6b7280',
+              fontWeight: activeTab === 'current' ? '600' : '500',
+              fontSize: '15px',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              marginBottom: '-2px'
+            }}
+          >
+            Current Loans ({currentLoans.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('history')}
+            style={{
+              padding: '12px 0',
+              background: 'none',
+              border: 'none',
+              borderBottom: activeTab === 'history' ? '3px solid #2563eb' : '3px solid transparent',
+              color: activeTab === 'history' ? '#2563eb' : '#6b7280',
+              fontWeight: activeTab === 'history' ? '600' : '500',
+              fontSize: '15px',
+              cursor: 'pointer',
+              transition: 'all 0.2s',
+              marginBottom: '-2px'
+            }}
+          >
+            History ({historyLoans.length})
+          </button>
+        </div>
+      </div>
 
-        {isLoading ? (
-          <div style={{ padding: '40px', textAlign: 'center' }}>
-            <p>Loading your books...</p>
-          </div>
-        ) : filteredLoans.length === 0 ? (
-          <div style={{ padding: '40px', textAlign: 'center' }}>
-            <p>No books in your bookbag</p>
+      <div className="contentCard">
+        {displayedLoans.length === 0 ? (
+          <div style={{ padding: '60px 40px', textAlign: 'center' }}>
+            <svg width="64" height="64" fill="#d1d5db" viewBox="0 0 24 24" style={{ margin: '0 auto 16px' }}>
+              <path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/>
+            </svg>
+            <p style={{ fontSize: '18px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>
+              {searchQuery ? 'No matching books found' : activeTab === 'current' ? 'No active loans' : 'No loan history'}
+            </p>
+            <p style={{ color: '#6b7280' }}>
+              {searchQuery ? 'Try adjusting your search' : activeTab === 'current' ? 'Reserve a book to get started' : 'Your returned books will appear here'}
+            </p>
           </div>
         ) : (
           <div className="scrollableContent">
-            {filteredLoans.map((loan) => {
+            {displayedLoans.map((loan) => {
               const book = loan.book
               const status = getStatusDisplay(loan)
               const daysLeft = getDaysLeft(loan)
 
               return (
                 <div key={loan.id} className="bookCard">
-                  <img src={book.book_pic_url || "/placeholder.svg"} alt={book.title} className="bookImage" 
-                       onError={(e) => { e.target.src = "/placeholder.svg" }} />
+                  <img 
+                    src={book.book_pic_url || "/placeholder.svg"} 
+                    alt={book.title} 
+                    className="bookImage" 
+                    onError={(e) => { e.target.src = "/placeholder.svg" }} 
+                  />
                   <div className="bookContent">
                     <h3 className="bookTitle">{book.title}</h3>
                     <p className="bookAuthor">{book.author}</p>
@@ -180,28 +243,49 @@ function PatronBookbagPage() {
                           <span className="detailLabel">ISBN:</span>
                           <span className="detailValue">{book.isbn}</span>
                         </p>
+                        {loan.copy_accession_number && (
+                          <p className="detailRow">
+                            <span className="detailLabel">Copy #:</span>
+                            <span className="detailValue">{loan.copy_accession_number}</span>
+                          </p>
+                        )}
                       </div>
                       <div className="bookDetailsCenter">
                         <p className="detailRow">
                           <span className="detailLabel">Request Date:</span>
                           <span className="detailValue">{formatDate(loan.request_date)}</span>
                         </p>
-                        <p className="detailRow">
-                          <span className="detailLabel">Due Date:</span>
-                          <span className="detailValue">{formatDate(loan.due_date)}</span>
-                        </p>
+                        {loan.approval_date && (
+                          <p className="detailRow">
+                            <span className="detailLabel">Approved:</span>
+                            <span className="detailValue">{formatDate(loan.approval_date)}</span>
+                          </p>
+                        )}
+                        {loan.due_date && (
+                          <p className="detailRow">
+                            <span className="detailLabel">Due Date:</span>
+                            <span className="detailValue">{formatDate(loan.due_date)}</span>
+                          </p>
+                        )}
+                        {loan.return_date && (
+                          <p className="detailRow">
+                            <span className="detailLabel">Returned:</span>
+                            <span className="detailValue">{formatDate(loan.return_date)}</span>
+                          </p>
+                        )}
                       </div>
                       <div className="bookDetailsRight">
                         <p className="detailRow">
                           <span className="detailLabel">Status:</span>
                           <span
-                            className={`statusBadge ${
-                              status === "Owned"
-                                ? "statusOwned"
-                                : status === "Overdue"
-                                  ? "statusOverdue"
-                                  : "statusPending"
-                            }`}
+                            className={
+                              status === "Borrowed" ? "statusOwned" :
+                              status === "Overdue" ? "statusOverdue" :
+                              status === "Pending Approval" ? "statusPending" :
+                              status === "Returned" ? "statusReturned" :
+                              status === "Rejected" ? "statusRejected" :
+                              "statusBadge"
+                            }
                           >
                             {status}
                           </span>
@@ -209,7 +293,12 @@ function PatronBookbagPage() {
                         {daysLeft !== null && (
                           <p className="detailRow">
                             <span className="detailLabel">{daysLeft >= 0 ? 'Days Left:' : 'Days Overdue:'}</span>
-                            <span className="detailValue">{Math.abs(daysLeft)}</span>
+                            <span className="detailValue" style={{ 
+                              color: daysLeft < 0 ? '#dc2626' : daysLeft <= 3 ? '#f59e0b' : '#059669',
+                              fontWeight: '600'
+                            }}>
+                              {Math.abs(daysLeft)}
+                            </span>
                           </p>
                         )}
                       </div>

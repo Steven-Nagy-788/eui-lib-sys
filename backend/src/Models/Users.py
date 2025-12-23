@@ -8,7 +8,6 @@ class UserRole(str, Enum):
     ADMIN = "admin"
     STUDENT = "student"
     PROFESSOR = "professor"
-    TA = "ta"
 
 # --- SHARED BASE ---
 class UserBase(BaseModel):
@@ -50,3 +49,14 @@ class UserResponse(UserBase):
 class Token(BaseModel):
     access_token: str
     token_type: str
+
+class UserStats(BaseModel):
+    active_loans: int = 0
+    total_loans: int = 0
+    overdue_loans: int = 0
+    infractions: int = 0
+    pending_requests: int = 0
+
+class UserDashboardResponse(BaseModel):
+    user: UserResponse
+    stats: UserStats

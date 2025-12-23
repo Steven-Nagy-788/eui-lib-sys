@@ -2,8 +2,8 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
 from uuid import UUID
 
-from ..dependencies import get_course_service
-from ..auth import require_admin, get_current_user
+from ..utils.dependencies import get_course_service
+from ..utils.auth import require_admin, get_current_user
 from ..Services.courseService import CourseService
 from ..Models.Courses import (
     CourseCreate,

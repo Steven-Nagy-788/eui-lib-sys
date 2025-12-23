@@ -1,0 +1,436 @@
+/* Responsive Layout Styles */
+
+@media (max-width: 768px) {
+  .layoutContainer {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .sidebarNav {
+    position: fixed;
+    left: -280px;
+    top: 0;
+    bottom: 0;
+    width: 280px;
+    z-index: 1000;
+    transition: left 0.3s ease;
+  }
+
+  .sidebarNav.open {
+    left: 0;
+  }
+
+  .sidebarOverlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 999;
+  }
+
+  .sidebarOverlay.show {
+    display: block;
+  }
+
+  .mainContent {
+    margin-left: 0 !important;
+  }
+
+  .mobileMenuButton {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    color: #374151;
+  }
+
+  .mobileMenuButton:hover {
+    background: #f3f4f6;
+    border-radius: 8px;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobileMenuButton {
+    display: none;
+  }
+
+  .sidebarOverlay {
+    display: none !important;
+  }
+}
+
+/* Book Card Actions */
+.bookCardActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.bookCardActions button {
+  flex: 1;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.editBookButton {
+  background: #3b82f6;
+  color: white;
+  border: none;
+}
+
+.editBookButton:hover {
+  background: #2563eb;
+}
+
+.deleteBookButton {
+  background: #ef4444;
+  color: white;
+  border: none;
+}
+
+.deleteBookButton:hover {
+  background: #dc2626;
+}
+
+.deleteBookButton:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Modal Styles */
+.modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+}
+
+.modalContent {
+  background: white;
+  border-radius: 12px;
+  max-width: 600px;
+  width: 100%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+}
+
+.modalHeader {
+  padding: 20px 24px;
+  border-bottom: 1px solid #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.modalTitle {
+  font-size: 18px;
+  font-weight: 600;
+  color: #111827;
+  margin: 0;
+}
+
+.modalCloseButton {
+  background: none;
+  border: none;
+  font-size: 24px;
+  color: #6b7280;
+  cursor: pointer;
+  padding: 0;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.modalCloseButton:hover {
+  background: #f3f4f6;
+}
+
+.modalBody {
+  padding: 24px;
+}
+
+.modalFooter {
+  padding: 16px 24px;
+  border-top: 1px solid #e5e7eb;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.formGroup {
+  margin-bottom: 20px;
+}
+
+.formGroup label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.formGroup input,
+.formGroup textarea,
+.formGroup select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #111827;
+  transition: border-color 0.2s;
+}
+
+.formGroup input:focus,
+.formGroup textarea:focus,
+.formGroup select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+}
+
+.formGroup textarea {
+  resize: vertical;
+  min-height: 80px;
+}
+
+.formGroup small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.formError {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.buttonPrimary {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.buttonPrimary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.buttonPrimary:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+.buttonSecondary {
+  background: white;
+  color: #374151;
+  border: 1px solid #d1d5db;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.buttonSecondary:hover {
+  background: #f9fafb;
+}
+
+.buttonDanger {
+  background: #ef4444;
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.buttonDanger:hover:not(:disabled) {
+  background: #dc2626;
+}
+
+.buttonDanger:disabled {
+  background: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* Filter Section */
+.filterSection {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.filterSection select,
+.filterSection input {
+  padding: 8px 12px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  min-width: 150px;
+}
+
+@media (max-width: 640px) {
+  .filterSection {
+    flex-direction: column;
+    width: 100%;
+  }
+
+  .filterSection select,
+  .filterSection input {
+    width: 100%;
+  }
+
+  .bookCardActions {
+    flex-direction: column;
+  }
+
+  .modalContent {
+    max-width: 100%;
+    margin: 0;
+    border-radius: 0;
+    max-height: 100vh;
+  }
+
+  /* Admin Page Responsive Styles */
+  .adminCirculationContainer,
+  .adminPatronsContainer,
+  .adminRequestsContainer,
+  .adminDatabaseContainer {
+    padding: 12px;
+  }
+
+  .adminCirculationHeader,
+  .adminPatronsHeader {
+    flex-direction: column;
+    gap: 16px;
+    align-items: flex-start;
+  }
+
+  .adminCirculationControls,
+  .searchSortControls {
+    flex-direction: column;
+    width: 100%;
+    gap: 12px;
+  }
+
+  .adminCirculationSelect,
+  .adminCirculationSearchInput,
+  .patronsSearchInput {
+    width: 100% !important;
+  }
+
+  .circulationCard {
+    flex-direction: column;
+  }
+
+  .circulationBookImage {
+    width: 100%;
+    max-width: 200px;
+    margin: 0 auto;
+  }
+
+  .circulationCardContent {
+    width: 100%;
+  }
+
+  .circulationButtons {
+    flex-direction: column;
+  }
+
+  .circulationButtons button {
+    width: 100%;
+  }
+
+  /* Profile Page Responsive */
+  .pageContent,
+  .adminProfileContainer {
+    padding: 12px;
+  }
+
+  .profileCard,
+  .adminProfileCard {
+    padding: 16px;
+  }
+
+  .statsGrid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  /* Book Grid */
+  .booksGrid {
+    grid-template-columns: 1fr;
+    gap: 16px;
+  }
+
+  /* Tables */
+  .patronsTable,
+  .databaseTable {
+    font-size: 13px;
+  }
+
+  .patronsTable th,
+  .patronsTable td,
+  .databaseTable th,
+  .databaseTable td {
+    padding: 8px 6px;
+  }
+
+  /* Hide some table columns on mobile */
+  .hideMobile {
+    display: none !important;
+  }
+}
+
+/* Tablet Breakpoint */
+@media (min-width: 641px) and (max-width: 1024px) {
+  .booksGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .statsGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .adminCirculationControls {
+    flex-wrap: wrap;
+  }
+}
+

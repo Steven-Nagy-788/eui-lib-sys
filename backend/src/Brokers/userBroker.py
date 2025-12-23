@@ -59,5 +59,51 @@ class UserBroker:
                 f"email.ilike.%{query}%,"
                 f"university_id.ilike.%{query}%"
             ).execute()
+    async def SearchUsers(self, query: str) -> list[dict]:
+        """Search users by name, email, or university ID (case-insensitive)"""
+        def _search():
+            return self.client.table("users").select("*").or_(
+                f"full_name.ilike.%{query}%,"
+                f"email.ilike.%{query}%,"
+                f"university_id.ilike.%{query}%"
+            ).execute()
         response = await asyncio.to_thread(_search)
         return response.data if response.data else []
+    
+    async def SelectUserDashboardStats(self, user_id: UUID) -> dict:
+        """Get user dashboard statistics efficiently"""
+        def _fetch_active_loans():
+            return self.client.table("loans").select("id", count="exact").eq("user_id", str(user_id)).eq("status", "active").execute()
+        
+        def _fetch_total_loans():
+            return self.client.table("loans").select("id", count="exact").eq("user_id", str(user_id)).execute()
+        
+        def _fetch_overdue_loans():
+            return self.client.table("loans").select("id", count="exact").eq("user_id", str(user_id)).eq("status", "overdue").execute()
+        
+        def _fetch_pending_requests():
+            return self.client.table("loans").select("id", count="exact").eq("user_id", str(user_id)).eq("status", "pending").execute()
+        
+        try:
+            active_response = await asyncio.to_thread(_fetch_active_loans)
+            total_response = await asyncio.to_thread(_fetch_total_loans)
+            overdue_response = await asyncio.to_thread(_fetch_overdue_loans)
+            pending_response = await asyncio.to_thread(_fetch_pending_requests)
+            
+            user_data = await self.SelectUserById(user_id)
+            
+            return {
+                'active_loans': active_response.count if active_response.count else 0,
+                'total_loans': total_response.count if total_response.count else 0,
+                'overdue_loans': overdue_response.count if overdue_response.count else 0,
+                'infractions': user_data.get('infractions_count', 0) if user_data else 0,
+                'pending_requests': pending_response.count if pending_response.count else 0
+            }
+        except Exception:
+            return {
+                'active_loans': 0,
+                'total_loans': 0,
+                'overdue_loans': 0,
+                'infractions': 0,
+                'pending_requests': 0
+            }

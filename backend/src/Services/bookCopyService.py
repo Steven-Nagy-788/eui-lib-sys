@@ -1,6 +1,6 @@
 from typing import List, Optional
 from uuid import UUID
-from ..Models.Books import BookCopyCreate, BookCopyResponse, BookCopyUpdate, BookStatus
+from ..Models.Books import BookCopyCreate, BookCopyResponse, BookCopyUpdate, BookStatus, BookCopyWithBorrowerInfo
 from ..Brokers.bookCopyBroker import BookCopyBroker
 
 
@@ -17,6 +17,11 @@ class BookCopyService:
         """Get all copies of a specific book"""
         copies = await self.broker.SelectCopiesByBookId(book_id)
         return [BookCopyResponse(**copy) for copy in copies]
+    
+    async def RetrieveCopiesByBookIdWithBorrowerInfo(self, book_id: UUID, available_only: bool = False) -> List[BookCopyWithBorrowerInfo]:
+        """Get copies with borrower information"""
+        copies = await self.broker.SelectCopiesByBookIdWithBorrowerInfo(book_id, available_only)
+        return [BookCopyWithBorrowerInfo(**copy) for copy in copies]
     
     async def RetrieveAvailableCopiesByBookId(self, book_id: UUID) -> List[BookCopyResponse]:
         """Get all available copies of a specific book"""

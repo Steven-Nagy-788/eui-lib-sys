@@ -44,3 +44,24 @@ class LoanResponse(BaseModel):
     approval_date: Optional[datetime] = None
     due_date: Optional[datetime] = None
     return_date: Optional[datetime] = None
+
+class LoanWithBookInfo(BaseModel):
+    """Loan response with book details for frontend display"""
+    id: UUID4
+    user_id: UUID4
+    copy_id: UUID4
+    status: LoanStatus
+    request_date: datetime
+    approval_date: Optional[datetime] = None
+    due_date: Optional[datetime] = None
+    return_date: Optional[datetime] = None
+    is_overdue: bool = False
+    
+    # Book information from JOIN
+    book_id: UUID4
+    book_title: str
+    book_author: str
+    book_isbn: str
+    book_publisher: Optional[str] = None
+    book_pic_url: Optional[str] = None
+    copy_accession_number: int

@@ -1,6 +1,6 @@
 from typing import List, Optional
 from uuid import UUID
-from ..Models.Books import BookCreate, BookResponse
+from ..Models.Books import BookCreate, BookResponse, BookWithStatsResponse, BookCopyStats
 from ..Brokers.bookBroker import BookBroker
 
 
@@ -36,3 +36,16 @@ class BookService:
         """Search books by title, author, or ISBN"""
         books = await self.broker.SearchBooks(query)
         return [BookResponse(**book) for book in books]
+    
+    async def RetrieveBooksWithStats(self, skip: int = 0, limit: int = 50) -> List[BookWithStatsResponse]:
+        """Get books with copy statistics"""
+        books_with_stats = await self.broker.SelectAllBooksWithStats(skip=skip, limit=limit)
+        result = []
+        for book_data in books_with_stats:
+            copy_stats = book_data.pop('copy_stats', {})
+            book_with_stats = BookWithStatsResponse(
+                **book_data,
+                copy_stats=BookCopyStats(**copy_stats)
+            )
+            result.append(book_with_stats)
+        return result

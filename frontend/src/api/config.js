@@ -9,16 +9,18 @@ const apiClient = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 seconds
+  timeout: 5000, // 5 seconds - reduced for better UX
 });
 
-// Request interceptor to add auth token
+// Request interceptor to add auth token and timing
 apiClient.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    // Add request start time for performance monitoring
+    config.metadata = { startTime: new Date() };
     return config;
   },
   (error) => {
@@ -26,9 +28,18 @@ apiClient.interceptors.request.use(
   }
 );
 
-// Response interceptor for error handling
+// Response interceptor for error handling and timing
 apiClient.interceptors.response.use(
-  (response) => response,
+  (response) => {
+    // Log request duration for performance monitoring
+    if (response.config.metadata?.startTime) {
+      const duration = new Date() - response.config.metadata.startTime;
+      if (duration > 1000) {
+        console.warn(`Slow API call: ${response.config.url} took ${duration}ms`);
+      }
+    }
+    return response;
+  },
   (error) => {
     if (error.response) {
       // Server responded with error status

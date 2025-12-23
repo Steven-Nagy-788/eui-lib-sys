@@ -1,7 +1,7 @@
 from typing import List, Optional
 from uuid import UUID
 from werkzeug.security import generate_password_hash, check_password_hash
-from ..Models.Users import UserCreate, UserResponse, UserRole, UserUpdate
+from ..Models.Users import UserCreate, UserResponse, UserRole, UserUpdate, UserDashboardResponse, UserStats
 from ..Brokers.userBroker import UserBroker
 
 
@@ -26,7 +26,9 @@ class UserService:
             'role': user.role.value,
             'full_name': user.full_name,
             'email': user.email,
-            'hashed_password': hashed_password
+            'hashed_password': hashed_password,
+            'faculty': user.faculty,
+            'academic_year': user.academic_year
         }
         return UserResponse(**await self.broker.InsertUser(user_data))
     
@@ -57,3 +59,16 @@ class UserService:
         """Search users by name, email, or university ID"""
         users = await self.broker.SearchUsers(query)
         return [UserResponse(**user) for user in users]
+    
+    async def RetrieveUserDashboard(self, user_id: UUID) -> Optional[UserDashboardResponse]:
+        """Get user profile with loan statistics"""
+        user_data = await self.broker.SelectUserById(user_id)
+        if not user_data:
+            return None
+        
+        stats_data = await self.broker.SelectUserDashboardStats(user_id)
+        
+        return UserDashboardResponse(
+            user=UserResponse(**user_data),
+            stats=UserStats(**stats_data)
+        )

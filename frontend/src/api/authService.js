@@ -1,147 +1,77 @@
-import { apiClient } from './config';
-
 /**
- * Authentication Service
- * Handles user login, logout, and token management
+ * Authentication Service - API calls only
+ * Handles login, logout, and user profile operations
  */
 
-/**
- * Decode JWT token to get payload
- * @param {string} token - JWT token
- * @returns {Object} Decoded token payload
- */
-const decodeJWT = (token) => {
-  try {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(
-      atob(base64)
-        .split('')
-        .map((c) => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2))
-        .join('')
-    );
-    return JSON.parse(jsonPayload);
-  } catch (error) {
-    console.error('Failed to decode JWT:', error);
-    return null;
-  }
-};
+import { apiClient } from './config'
+import { saveToken, removeToken, decodeToken } from '../utils/auth'
 
 /**
- * Login user with email and password
- * @param {string} email - User email
- * @param {string} password - User password
- * @returns {Promise<{token: string}>} Auth token
+ * Login user
  */
 export const login = async (email, password) => {
   try {
-    const response = await apiClient.post('/users/login', {
-      email,
-      password,
-    });
+    const response = await apiClient.post('/users/login', { email, password })
+    const { access_token } = response.data
     
-    const { access_token } = response.data;
-    
-    // Only store token - no user data in localStorage for security
-    localStorage.setItem('auth_token', access_token);
-    
-    // Verify token is valid
-    const payload = decodeJWT(access_token);
-    if (!payload || !payload.id) {
-      throw new Error('Invalid token: missing user ID');
+    // Validate token
+    const payload = decodeToken(access_token)
+    if (!payload?.id || !payload?.role) {
+      throw new Error('Invalid token: missing user ID or role')
     }
+    
+    saveToken(access_token)
     
     return {
       token: access_token,
-    };
+      user: { id: payload.id, role: payload.role }
+    }
   } catch (error) {
-    console.error('Login error:', error);
-    localStorage.removeItem('auth_token');
+    removeToken()
+    throw error
+  }
+}
+
+/**
+ * Logout user
+ */
+export const logout = () => {
+  removeToken()
+}
+
+/**
+ * Get current user profile from API (uses /users/me endpoint)
+ */
+export const getCurrentUserProfile = async () => {
+  const response = await apiClient.get('/users/me')
+  return response.data
+}
+
+/**
+ * Get user profile by ID from API
+ */
+export const getUserProfile = async (userId) => {
+  if (!userId) {
+    return getCurrentUserProfile()
+  }
+  const response = await apiClient.get(`/users/${userId}`)
+  return response.data
+}
+
+/**
+ * Get current user dashboard with profile and loan statistics
+ * Uses optimized /users/me/dashboard endpoint
+ * @returns {Promise<Object>} User profile and stats
+ */
+export const getUserDashboard = async () => {
+  try {
+    const response = await apiClient.get('/users/me/dashboard');
+    return response.data;
+  } catch (error) {
+    console.error('Get user dashboard error:', error);
     throw error;
   }
 };
 
-/**
- * Get user data from JWT token
- * @returns {Object|null} User data from token or null if not authenticated
- */
-export const getUserFromToken = () => {
-  const token = getToken();
-  if (!token) return null;
-  
-  const payload = decodeJWT(token);
-  if (!payload) return null;
-  
-  return {
-    id: payload.id,
-    email: payload.email,
-    role: payload.role,
-    university_id: payload.uniId,
-  };
-};
-
-/**
- * Get user profile by user ID from API
- * @param {string} userId - User ID (optional, will use token user if not provided)
- * @returns {Promise<Object>} User profile data
- */
-export const getUserProfile = async (userId = null) => {
-  try {
-    // If no userId provided, get from token
-    if (!userId) {
-      const tokenUser = getUserFromToken();
-      if (!tokenUser) {
-        throw new Error('Not authenticated');
-      }
-      userId = tokenUser.id;
-    }
-    
-    // Fetch user from API
-    const response = await apiClient.get(`/users/${userId}`);
-    return response.data;
-  } catch (error) {
-    console.error('Get profile error:', error);
-  }
-};
-
-/**
- * Logout current user
- */
-export const logout = () => {
-  localStorage.removeItem('auth_token');
-  localStorage.removeItem('user');
-};
-
-/**
- * Check if user is authenticated
- * @returns {boolean} True if user has valid token
- */
-export const isAuthenticated = () => {
-  return !!localStorage.getItem('auth_token');
-};
-
-/**
- * Get stored auth token
- * @returns {string|null} Auth token or null
- */
-export const getToken = () => {
-  return localStorage.getItem('auth_token');
-};
-
-/**
- * Get stored user data
- * @retcurrent user data from token
- * @returns {Object|null} User data or null
- */
-export const getCurrentUser = () => {
-  return getUserFromToken();
-};
-
-export default {
-  login,
-  logout,
-  getUserProfile,
-  isAuthenticated,
-  getToken,
-  getCurrentUser,
-};
+// Re-export auth utilities for convenience
+export { getUserFromToken, isAuthenticated, getToken } from '../utils/auth'

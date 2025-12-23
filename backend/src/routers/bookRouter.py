@@ -2,10 +2,10 @@ from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
 from uuid import UUID
 
-from ..dependencies import get_book_service
-from ..auth import require_admin, get_current_user
+from ..utils.dependencies import get_book_service
+from ..utils.auth import require_admin, get_current_user
 from ..Services.bookService import BookService
-from ..Models.Books import BookCreate, BookResponse
+from ..Models.Books import BookCreate, BookResponse, BookWithStatsResponse, BookCopyStats
 
 router = APIRouter(
     prefix="/books",
@@ -21,6 +21,17 @@ async def get_books(
     current_user: dict = Depends(get_current_user)
 ):
     return await service.RetrieveAllBooks(skip=skip, limit=limit)
+
+
+@router.get("/with-stats", response_model=List[BookWithStatsResponse])
+async def get_books_with_stats(
+    skip: int = 0,
+    limit: int = 50,
+    service: BookService = Depends(get_book_service),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get books with copy statistics in one call"""
+    return await service.RetrieveBooksWithStats(skip=skip, limit=limit)
 
 
 @router.get("/{book_id}", response_model=BookResponse)

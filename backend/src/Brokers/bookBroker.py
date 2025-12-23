@@ -47,7 +47,8 @@ class BookBroker:
     async def DeleteBook(self, book_id: UUID) -> bool:
         def _delete():
             return self.client.table("books").delete().eq("id", str(book_id)).execute()
-        return len(await asyncio.to_thread(_delete).data) > 0
+        response = await asyncio.to_thread(_delete)
+        return len(response.data) > 0
     
     async def SearchBooks(self, query: str) -> list[dict]:
         """Search books by title, author, or ISBN (case-insensitive)"""
@@ -61,3 +62,56 @@ class BookBroker:
         
         response = await asyncio.to_thread(_search)
         return response.data if response.data else []
+    
+    async def SelectAllBooksWithStats(self, skip: int = 0, limit: int = 50) -> list[dict]:
+        """Get all books with copy statistics in a single query using RPC"""
+        def _fetch():
+            # Use a custom RPC function to get books with stats efficiently
+            return self.client.rpc(
+                'get_books_with_stats',
+                {'offset_param': skip, 'limit_param': limit}
+            ).execute()
+        
+        try:
+            response = await asyncio.to_thread(_fetch)
+            return response.data if response.data else []
+        except Exception:
+            # Fallback: Fetch books and calculate stats manually
+            return await self._fetch_books_with_stats_fallback(skip, limit)
+    
+    async def _fetch_books_with_stats_fallback(self, skip: int, limit: int) -> list[dict]:
+        """Fallback method to calculate stats manually if RPC doesn't exist"""
+        def _fetch_books():
+            return self.client.table("books").select("*").range(skip, skip + limit - 1).execute()
+        
+        def _fetch_copies(book_id: str):
+            return self.client.table("book_copies").select("*").eq("book_id", book_id).execute()
+        
+        books_response = await asyncio.to_thread(_fetch_books)
+        books = books_response.data if books_response.data else []
+        
+        result = []
+        for book in books:
+            copies_response = await asyncio.to_thread(_fetch_copies, str(book['id']))
+            copies = copies_response.data if copies_response.data else []
+            
+            total = len(copies)
+            # Available: ONLY circulating copies with status='available'
+            available = sum(1 for c in copies if not c.get('is_reference', False) and c.get('status') == 'available')
+            reference = sum(1 for c in copies if c.get('is_reference', False))
+            circulating = sum(1 for c in copies if not c.get('is_reference', False))
+            checked_out = sum(1 for c in copies if c.get('status') == 'loaned')
+            
+            book_with_stats = {
+                **book,
+                'copy_stats': {
+                    'total': total,
+                    'available': available,
+                    'reference': reference,
+                    'circulating': circulating,
+                    'checked_out': checked_out
+                }
+            }
+            result.append(book_with_stats)
+        
+        return result

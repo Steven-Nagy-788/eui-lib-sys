@@ -123,49 +123,100 @@ class StatsBroker:
     async def get_most_borrowed_books(self, limit: int = 10) -> list[dict]:
         """Get most borrowed books with their borrow count"""
         def _fetch():
-            # Get all returned and active loans
+            # Get all loans with book information via JOIN
+            return self.client.table("loans").select(
+                "copy_id, book_copies!inner(book_id, books!inner(id, title, author, isbn))"
+            ).in_("status", ["active", "returned", "overdue"]).execute()
+        
+        try:
+            response = await asyncio.to_thread(_fetch)
+            loans = response.data if response.data else []
+            
+            # Count by book_id (not copy_id to avoid duplicates)
+            book_counts = {}
+            book_details = {}
+            
+            for loan in loans:
+                copy_info = loan.get("book_copies", {})
+                if copy_info:
+                    book_id = copy_info.get("book_id")
+                    book_info = copy_info.get("books", {})
+                    
+                    if book_id:
+                        # Increment count
+                        book_counts[str(book_id)] = book_counts.get(str(book_id), 0) + 1
+                        
+                        # Store book details (only once per book)
+                        if str(book_id) not in book_details and book_info:
+                            book_details[str(book_id)] = {
+                                "book_id": book_id,
+                                "title": book_info.get("title", "Unknown"),
+                                "author": book_info.get("author", "Unknown"),
+                                "isbn": book_info.get("isbn", "")
+                            }
+            
+            # Sort by borrow count and get top books
+            top_books = sorted(book_counts.items(), key=lambda x: x[1], reverse=True)[:limit]
+            
+            # Build result with book details and counts
+            result = []
+            for book_id, count in top_books:
+                if book_id in book_details:
+                    result.append({
+                        **book_details[book_id],
+                        "borrow_count": count
+                    })
+            
+            return result
+        except Exception as e:
+            # Fallback to old method if JOIN fails
+            return await self._get_most_borrowed_books_fallback(limit)
+    
+    async def _get_most_borrowed_books_fallback(self, limit: int = 10) -> list[dict]:
+        """Fallback method for most borrowed books"""
+        def _fetch():
             return self.client.table("loans").select("copy_id").in_("status", ["active", "returned", "overdue"]).execute()
         
         try:
             response = await asyncio.to_thread(_fetch)
             loans = response.data if response.data else []
             
-            # Count by copy_id
-            copy_counts = {}
+            # Get book_id for each copy and count by book_id
+            book_counts = {}
+            
             for loan in loans:
                 copy_id = loan.get("copy_id")
                 if copy_id:
-                    copy_counts[copy_id] = copy_counts.get(copy_id, 0) + 1
-            
-            # Get top copies
-            top_copies = sorted(copy_counts.items(), key=lambda x: x[1], reverse=True)[:limit]
-            
-            # Fetch book details for these copies
-            result = []
-            for copy_id, count in top_copies:
-                # Get copy info
-                copy_response = await asyncio.to_thread(
-                    lambda: self.client.table("book_copies").select("book_id").eq("id", copy_id).execute()
-                )
-                if copy_response.data:
-                    book_id = copy_response.data[0].get("book_id")
-                    # Get book info
-                    book_response = await asyncio.to_thread(
-                        lambda: self.client.table("books").select("*").eq("id", book_id).execute()
+                    # Get copy info
+                    copy_response = await asyncio.to_thread(
+                        lambda cid=copy_id: self.client.table("book_copies").select("book_id").eq("id", str(cid)).execute()
                     )
-                    if book_response.data:
-                        book = book_response.data[0]
-                        result.append({
-                            "book_id": book_id,
-                            "title": book.get("title"),
-                            "author": book.get("author"),
-                            "isbn": book.get("isbn"),
-                            "borrow_count": count
-                        })
+                    if copy_response.data:
+                        book_id = str(copy_response.data[0].get("book_id"))
+                        book_counts[book_id] = book_counts.get(book_id, 0) + 1
+            
+            # Get top books
+            top_books = sorted(book_counts.items(), key=lambda x: x[1], reverse=True)[:limit]
+            
+            # Fetch book details
+            result = []
+            for book_id, count in top_books:
+                book_response = await asyncio.to_thread(
+                    lambda bid=book_id: self.client.table("books").select("*").eq("id", bid).execute()
+                )
+                if book_response.data:
+                    book = book_response.data[0]
+                    result.append({
+                        "book_id": book_id,
+                        "title": book.get("title", "Unknown"),
+                        "author": book.get("author", "Unknown"),
+                        "isbn": book.get("isbn", ""),
+                        "borrow_count": count
+                    })
             
             return result
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Failed to fetch statistics: {str(e)}")
+        except Exception:
+            return []
     
     async def get_books_by_status(self) -> dict:
         """Get book copy count by status"""

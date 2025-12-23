@@ -2,15 +2,16 @@ from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import List, Optional
 from uuid import UUID
 
-from ..dependencies import get_loan_service
-from ..auth import get_current_user, require_admin
+from ..utils.dependencies import get_loan_service
+from ..utils.auth import get_current_user, require_admin
 from ..Services.loanService import LoanService
 from ..Models.Loans import (
     LoanRequest,
     LoanResponse,
     LoanUpdate,
     LoanStatus,
-    LoanPolicyResponse
+    LoanPolicyResponse,
+    LoanWithBookInfo
 )
 
 router = APIRouter(
@@ -31,7 +32,7 @@ async def get_all_loans(
     return await service.get_all_loans(skip=skip, limit=limit)
 
 
-@router.get("/status/{status}", response_model=List[LoanResponse])
+@router.get("/status/{status}", response_model=List[LoanWithBookInfo])
 async def get_loans_by_status(
     status: LoanStatus,
     skip: int = 0,
@@ -39,19 +40,19 @@ async def get_loans_by_status(
     service: LoanService = Depends(get_loan_service),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get all loans with a specific status (pending, active, returned, overdue, rejected)"""
-    return await service.get_loans_by_status(status, skip, limit)
+    """Get all loans with a specific status with book details (pending, active, returned, overdue, rejected)"""
+    return await service.get_loans_by_status_with_book_info(status, skip, limit)
 
 
-@router.get("/user/{user_id}", response_model=List[LoanResponse])
+@router.get("/user/{user_id}", response_model=List[LoanWithBookInfo])
 async def get_user_loans(
     user_id: UUID,
     status: Optional[str] = Query(None, description="Filter by status"),
     service: LoanService = Depends(get_loan_service),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get all loans for a specific user, optionally filtered by status"""
-    return await service.get_loans_by_user(user_id, status)
+    """Get all loans for a specific user with book details"""
+    return await service.get_loans_by_user_with_book_info(user_id, status)
 
 
 @router.get("/overdue", response_model=List[LoanResponse])
@@ -104,7 +105,7 @@ async def get_loan_policy(
 
 @router.post("/request", response_model=LoanResponse, status_code=status.HTTP_201_CREATED)
 async def create_loan_request(
-    copy_id: UUID,
+    copy_id: UUID = Query(..., description="ID of the book copy to request"),
     service: LoanService = Depends(get_loan_service),
     current_user: dict = Depends(get_current_user)
 ):

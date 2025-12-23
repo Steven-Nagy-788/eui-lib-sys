@@ -1,12 +1,13 @@
 from typing import List, Optional
 from uuid import UUID
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from ..Models.Loans import (
     LoanCreate,
     LoanResponse,
     LoanUpdate,
     LoanStatus,
-    LoanPolicyResponse
+    LoanPolicyResponse,
+    LoanWithBookInfo
 )
 from ..Brokers.loanBroker import LoanBroker
 from ..Brokers.userBroker import UserBroker
@@ -44,10 +45,46 @@ class LoanService:
         loans = await self.loan_broker.SelectLoansByUser(user_id, status)
         return [LoanResponse(**loan) for loan in loans]
     
+    async def get_loans_by_user_with_book_info(self, user_id: UUID, status: Optional[str] = None) -> List[LoanWithBookInfo]:
+        """Get all loans for a user with book details"""
+        loans = await self.loan_broker.SelectLoansByUserWithBookInfo(user_id, status)
+        now = datetime.now(timezone.utc)
+        
+        result = []
+        for loan in loans:
+            # Calculate is_overdue
+            is_overdue = False
+            if loan.get('due_date') and loan.get('status') == 'active':
+                due_date = datetime.fromisoformat(loan['due_date'].replace('Z', '+00:00'))
+                is_overdue = now > due_date
+            
+            loan['is_overdue'] = is_overdue
+            result.append(LoanWithBookInfo(**loan))
+        
+        return result
+    
     async def get_loans_by_status(self, status: LoanStatus, skip: int = 0, limit: int = 100) -> List[LoanResponse]:
         """Get all loans with a specific status"""
         loans = await self.loan_broker.SelectLoansByStatus(status.value, skip, limit)
         return [LoanResponse(**loan) for loan in loans]
+    
+    async def get_loans_by_status_with_book_info(self, status: LoanStatus, skip: int = 0, limit: int = 100) -> List[LoanWithBookInfo]:
+        """Get all loans with a specific status with book details"""
+        loans = await self.loan_broker.SelectLoansByStatusWithBookInfo(status.value, skip, limit)
+        now = datetime.now(timezone.utc)
+        
+        result = []
+        for loan in loans:
+            # Calculate is_overdue
+            is_overdue = False
+            if loan.get('due_date') and loan.get('status') == 'active':
+                due_date = datetime.fromisoformat(loan['due_date'].replace('Z', '+00:00'))
+                is_overdue = now > due_date
+            
+            loan['is_overdue'] = is_overdue
+            result.append(LoanWithBookInfo(**loan))
+        
+        return result
     
     async def get_overdue_loans(self) -> List[LoanResponse]:
         """Get all loans that are overdue"""
@@ -160,7 +197,7 @@ class LoanService:
                     course = await self.course_broker.SelectCourseByCode(course_book["course_code"])
                     if course:
                         loan_days = course.get("course_loan_days", 90)
-                        return datetime.utcnow() + timedelta(days=loan_days)
+                        return datetime.now(timezone.utc) + timedelta(days=loan_days)
         
         # Default: use loan policy based on role
         policy = await self.loan_broker.SelectLoanPolicy(user["role"])
@@ -170,7 +207,7 @@ class LoanService:
         else:
             loan_days = policy["loan_days"]
         
-        return datetime.utcnow() + timedelta(days=loan_days)
+        return datetime.now(timezone.utc) + timedelta(days=loan_days)
 
     # ==================== LOAN APPROVAL ====================
     
@@ -197,7 +234,7 @@ class LoanService:
         # Update loan
         update_data = {
             "status": "active",
-            "approval_date": datetime.utcnow().isoformat(),
+            "approval_date": datetime.now(timezone.utc).isoformat(),
             "due_date": due_date.isoformat()
         }
         
@@ -242,7 +279,7 @@ class LoanService:
         if loan["status"] not in ["active", "overdue"]:
             raise ValueError(f"Loan cannot be returned. Current status: {loan['status']}")
         
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         
         # Check if overdue
         is_overdue = False

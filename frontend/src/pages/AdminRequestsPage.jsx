@@ -3,9 +3,9 @@
 import { useState, useMemo, useEffect, useCallback } from "react"
 import { getLoansByStatus, approveLoan, rejectLoan } from "../api/loansService"
 import { getUser } from "../api/usersService"
-import { getBook } from "../api/booksService"
 import toast from "../utils/toast"
 import "../assets/AdminPages.css"
+import "../assets/Responsive.css"
 
 function AdminRequestsPage() {
   const [searchQuery, setSearchQuery] = useState("")
@@ -19,21 +19,36 @@ function AdminRequestsPage() {
       setIsLoading(true)
       setError("")
       
+      // getLoansByStatus now returns LoanWithBookInfo schema with embedded book details
       const pendingLoans = await getLoansByStatus('pending')
       
       const requestsWithDetails = await Promise.all(
         pendingLoans.map(async (loan) => {
           try {
-            const [user, book] = await Promise.all([
-              getUser(loan.user_id).catch(() => ({ full_name: 'Unknown', email: 'N/A', university_id: 'N/A' })),
-              getBook(loan.book_id).catch(() => ({ title: 'Unknown Book' }))
-            ])
+            // Only fetch user details - book details are already embedded in loan
+            const user = await getUser(loan.user_id).catch(() => ({ 
+              full_name: 'Unknown User', 
+              email: 'N/A', 
+              university_id: loan.user_id 
+            }))
+            
+            // Extract embedded book details from loan response
+            const book = {
+              id: loan.book_id,
+              title: loan.book_title || 'Unknown Book',
+              author: loan.book_author || 'Unknown Author',
+              isbn: loan.book_isbn,
+              publisher: loan.book_publisher,
+              book_pic_url: loan.book_pic_url
+            }
+            
             return { ...loan, user, book }
-          } catch {
+          } catch (err) {
+            console.error('Error processing loan:', loan.id, err)
             return {
               ...loan,
-              user: { full_name: 'Unknown', email: 'N/A' },
-              book: { title: 'Unknown Book' }
+              user: { full_name: 'Unknown User', email: 'N/A', university_id: loan.user_id },
+              book: { title: loan.book_title || 'Unknown Book', author: loan.book_author || 'Unknown' }
             }
           }
         })

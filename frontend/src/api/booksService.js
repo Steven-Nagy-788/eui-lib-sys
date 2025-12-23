@@ -11,7 +11,7 @@ import { apiClient } from './config';
  * @param {number} limit - Maximum number of books to return
  * @returns {Promise<Array>} List of books
  */
-export const getBooks = async (skip = 0, limit = 100) => {
+export const getBooks = async (skip = 0, limit = 50) => {
   try {
     const response = await apiClient.get('/books/', {
       params: { skip, limit }
@@ -116,6 +116,25 @@ export const deleteBook = async (bookId) => {
   }
 };
 
+/**
+ * Get books with copy statistics included (optimized endpoint)
+ * Uses the backend's /books/with-stats endpoint for a single DB query
+ * @param {number} skip - Number of books to skip
+ * @param {number} limit - Maximum number of books to return
+ * @returns {Promise<Array>} List of books with copy_stats included
+ */
+export const getBooksWithStats = async (skip = 0, limit = 50) => {
+  try {
+    const response = await apiClient.get('/books/with-stats', {
+      params: { skip, limit }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Get books with stats error:', error);
+    throw error;
+  }
+};
+
 export default {
   getBooks,
   getBook,
@@ -124,4 +143,5 @@ export default {
   updateBook,
   partialUpdateBook,
   deleteBook,
+  getBooksWithStats,
 };

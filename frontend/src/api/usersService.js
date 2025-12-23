@@ -1,10 +1,4 @@
 import { apiClient } from './config';
-
-/**
- * Users Service
- * Handles all user management operations
- */
-
 /**
  * Get all users with pagination
  * @param {number} skip - Number of users to skip
