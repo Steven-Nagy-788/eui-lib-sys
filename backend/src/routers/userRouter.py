@@ -90,7 +90,8 @@ async def get_user(
 
 @router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(
-    user: UserCreate, service: UserService = Depends(get_user_service)
+    user: UserCreate, service: UserService = Depends(get_user_service),
+    current_user: dict = Depends(require_admin),
 ):
     """Create a new user"""
     try:
