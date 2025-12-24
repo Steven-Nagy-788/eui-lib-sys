@@ -1,6 +1,5 @@
 import asyncio
 from supabase import Client
-from typing import Optional
 from datetime import datetime
 from fastapi import HTTPException
 
@@ -168,7 +167,7 @@ class StatsBroker:
                     })
             
             return result
-        except Exception as e:
+        except Exception:
             # Fallback to old method if JOIN fails
             return await self._get_most_borrowed_books_fallback(limit)
     
@@ -278,7 +277,7 @@ class StatsBroker:
                     try:
                         month = datetime.fromisoformat(request_date.replace("Z", "+00:00")).month
                         month_counts[month] = month_counts.get(month, 0) + 1
-                    except:
+                    except (ValueError, AttributeError):
                         continue
             
             # Format result

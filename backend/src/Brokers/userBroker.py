@@ -2,7 +2,6 @@ import asyncio
 from supabase import Client
 from typing import Optional
 from uuid import UUID
-from fastapi import HTTPException
 
 class UserBroker:
     def __init__(self, client: Client):
@@ -10,9 +9,27 @@ class UserBroker:
 
     async def SelectAllUsers(self, skip: int = 0, limit: int = 10) -> list[dict]:
         def _fetch():
-            return self.client.table("users").select("*").range(skip, skip + limit - 1).execute()  
-        user = await asyncio.to_thread(_fetch)      
-        return user.data
+            # Fetch users with loan counts using aggregation
+            return self.client.table("users").select(
+                "*,"
+                "loans!left(id, status)"
+            ).range(skip, skip + limit - 1).execute()
+        response = await asyncio.to_thread(_fetch)
+        
+        # Calculate loan counts for each user
+        users = []
+        for user in response.data:
+            loans = user.pop('loans', [])
+            active_count = sum(1 for loan in loans if loan.get('status') in ['pending', 'pending_pickup', 'active'])
+            total_count = len(loans)
+            
+            users.append({
+                **user,
+                'active_loans_count': active_count,
+                'total_loans_count': total_count
+            })
+        
+        return users
     
     async def SelectUserById(self, user_id: UUID) -> Optional[dict]:
         def _fetch():
@@ -59,14 +76,7 @@ class UserBroker:
                 f"email.ilike.%{query}%,"
                 f"university_id.ilike.%{query}%"
             ).execute()
-    async def SearchUsers(self, query: str) -> list[dict]:
-        """Search users by name, email, or university ID (case-insensitive)"""
-        def _search():
-            return self.client.table("users").select("*").or_(
-                f"full_name.ilike.%{query}%,"
-                f"email.ilike.%{query}%,"
-                f"university_id.ilike.%{query}%"
-            ).execute()
+        
         response = await asyncio.to_thread(_search)
         return response.data if response.data else []
     

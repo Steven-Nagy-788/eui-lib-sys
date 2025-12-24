@@ -1,7 +1,7 @@
 from typing import List, Optional
 from uuid import UUID
 from werkzeug.security import generate_password_hash, check_password_hash
-from ..Models.Users import UserCreate, UserResponse, UserRole, UserUpdate, UserDashboardResponse, UserStats
+from ..Models.Users import UserCreate, UserResponse, UserUpdate, UserDashboardResponse, UserStats
 from ..Brokers.userBroker import UserBroker
 
 

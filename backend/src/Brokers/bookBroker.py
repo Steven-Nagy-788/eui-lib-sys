@@ -2,8 +2,9 @@ import asyncio
 from supabase import Client
 from typing import Optional
 from uuid import UUID
+from .IBroker import IBookBroker
 
-class BookBroker:
+class BookBroker(IBookBroker):
     def __init__(self, client: Client):
         self.client = client
 

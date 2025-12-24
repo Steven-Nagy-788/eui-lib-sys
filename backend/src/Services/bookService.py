@@ -2,9 +2,10 @@ from typing import List, Optional
 from uuid import UUID
 from ..Models.Books import BookCreate, BookResponse, BookWithStatsResponse, BookCopyStats, BookWithStatsAndCoursesResponse, CourseInfo
 from ..Brokers.bookBroker import BookBroker
+from .IService import IBookService
 
 
-class BookService:
+class BookService(IBookService):
     def __init__(self, broker: BookBroker):
         self.broker = broker
 

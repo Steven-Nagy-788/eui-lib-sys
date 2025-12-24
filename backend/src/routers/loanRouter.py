@@ -6,7 +6,6 @@ from ..utils.dependencies import get_loan_service
 from ..utils.auth import get_current_user, require_admin
 from ..Services.loanService import LoanService
 from ..Models.Loans import (
-    LoanRequest,
     LoanResponse,
     LoanUpdate,
     LoanStatus,
@@ -32,7 +31,7 @@ async def get_all_loans(
     return await service.get_all_loans(skip=skip, limit=limit)
 
 
-@router.get("/status/{status}", response_model=List[LoanResponse])
+@router.get("/status/{status}", response_model=List[LoanWithBookInfo])
 async def get_loans_by_status(
     status: LoanStatus,
     skip: int = 0,
@@ -40,8 +39,8 @@ async def get_loans_by_status(
     service: LoanService = Depends(get_loan_service),
     current_user: dict = Depends(get_current_user)
 ):
-    """Get all loans with a specific status (pending, active, returned, overdue, rejected)"""
-    return await service.get_loans_by_status(status, skip, limit)
+    """Get all loans with a specific status with book and user details"""
+    return await service.get_loans_by_status_with_book_info(status, skip, limit)
 
 
 @router.get("/user/{user_id}", response_model=List[LoanWithBookInfo])
@@ -62,6 +61,25 @@ async def get_overdue_loans(
 ):
     """Get all loans that are overdue"""
     return await service.get_overdue_loans()
+
+
+@router.get("/calculate-due-date/{copy_id}")
+async def calculate_due_date(
+    copy_id: UUID,
+    service: LoanService = Depends(get_loan_service),
+    current_user: dict = Depends(get_current_user)
+):
+    """Calculate due date for a book copy based on user role and course enrollment"""
+    try:
+        from uuid import UUID
+        user_id = UUID(current_user["id"])
+        calculation = await service.get_due_date_calculation(user_id, copy_id)
+        return calculation
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
 
 
 @router.get("/{loan_id}", response_model=LoanResponse)
@@ -141,16 +159,38 @@ async def approve_loan(
     current_user: dict = Depends(require_admin)
 ):
     """
-    Approve a loan request (Admin only - TODO: add auth)
+    Approve a loan request (Admin only)
     
     Actions:
     - Calculate due date (with course override if applicable)
-    - Update status to 'active'
+    - Update status to 'pending_pickup' (waiting for patron to pick up)
     - Set approval_date and due_date
     """
     try:
         approved_loan = await service.approve_loan(loan_id)
         return approved_loan
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post("/{loan_id}/checkout", response_model=LoanResponse)
+async def checkout_loan(
+    loan_id: UUID,
+    service: LoanService = Depends(get_loan_service),
+    current_user: dict = Depends(require_admin)
+):
+    """
+    Mark a loan as checked out - patron picked up the book (Admin only)
+    
+    Actions:
+    - Update status from 'pending_pickup' to 'active' (with patron)
+    """
+    try:
+        checked_out_loan = await service.checkout_loan(loan_id)
+        return checked_out_loan
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -172,6 +212,29 @@ async def reject_loan(
     try:
         rejected_loan = await service.reject_loan(loan_id)
         return rejected_loan
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e)
+        )
+
+
+@router.post("/{loan_id}/cancel", response_model=LoanResponse)
+async def cancel_loan(
+    loan_id: UUID,
+    service: LoanService = Depends(get_loan_service),
+    current_user: dict = Depends(get_current_user)
+):
+    """
+    Cancel a loan request (User can cancel their own, Admin can cancel any)
+    
+    Updates status to 'canceled'
+    """
+    try:
+        # Admin can cancel any loan, users can only cancel their own
+        user_id = None if current_user.get("role") == "admin" else UUID(current_user["id"])
+        canceled_loan = await service.cancel_loan(loan_id, user_id)
+        return canceled_loan
     except ValueError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

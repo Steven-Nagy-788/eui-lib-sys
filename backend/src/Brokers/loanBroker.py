@@ -1,6 +1,6 @@
 import asyncio
 from supabase import Client
-from typing import Optional, List
+from typing import Optional
 from uuid import UUID
 from datetime import datetime
 
@@ -126,27 +126,27 @@ class LoanBroker:
         return result
     
     async def SelectActiveLoansByUser(self, user_id: UUID) -> list[dict]:
-        """Get all active loans for a user (pending or active status)"""
+        """Get all active loans for a user (pending, pending_pickup, or active status)"""
         def _fetch():
             return (
                 self.client.table("loans")
                 .select("*")
                 .eq("user_id", str(user_id))
-                .in_("status", ["pending", "active"])
+                .in_("status", ["pending", "pending_pickup", "active"])
                 .execute()
             )
         response = await asyncio.to_thread(_fetch)
         return response.data if response.data else []
     
     async def CheckUserHasCopyOnLoan(self, user_id: UUID, copy_id: UUID) -> bool:
-        """Check if user already has this specific copy on loan (active or pending)"""
+        """Check if user already has this specific copy on loan (active, pending, or pending_pickup)"""
         def _fetch():
             return (
                 self.client.table("loans")
                 .select("id")
                 .eq("user_id", str(user_id))
                 .eq("copy_id", str(copy_id))
-                .in_("status", ["pending", "active"])
+                .in_("status", ["pending", "pending_pickup", "active"])
                 .execute()
             )
         response = await asyncio.to_thread(_fetch)

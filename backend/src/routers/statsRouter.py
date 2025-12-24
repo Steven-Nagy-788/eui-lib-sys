@@ -1,5 +1,4 @@
 from fastapi import APIRouter, Depends, Query
-from typing import List
 
 from ..utils.dependencies import get_stats_service
 from ..utils.auth import require_admin

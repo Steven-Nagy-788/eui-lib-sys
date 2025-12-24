@@ -140,7 +140,7 @@ export const createLoanRequest = async (copyId) => {
 /**
  * Approve a loan request (Admin only)
  * @param {number} loanId - Loan ID
- * @returns {Promise<Object>} Updated loan with active status
+ * @returns {Promise<Object>} Updated loan with pending_pickup status
  */
 export const approveLoan = async (loanId) => {
   try {
@@ -148,6 +148,21 @@ export const approveLoan = async (loanId) => {
     return response.data;
   } catch (error) {
     console.error('Approve loan error:', error);
+    throw error;
+  }
+};
+
+/**
+ * Mark a loan as checked out - patron picked up the book (Admin only)
+ * @param {number} loanId - Loan ID
+ * @returns {Promise<Object>} Updated loan with active status
+ */
+export const checkoutLoan = async (loanId) => {
+  try {
+    const response = await apiClient.post(`/loans/${loanId}/checkout`);
+    return response.data;
+  } catch (error) {
+    console.error('Checkout loan error:', error);
     throw error;
   }
 };
@@ -283,6 +298,7 @@ export default {
   searchLoans,
   createLoanRequest,
   approveLoan,
+  checkoutLoan,
   rejectLoan,
   returnLoan,
   updateLoan,

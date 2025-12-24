@@ -1,6 +1,5 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
 from scalar_fastapi import get_scalar_api_reference
 
 from .utils.config import get_supabase
@@ -52,10 +51,10 @@ async def startup_event():
     print("🚀 Library System API starting up...")
     print("=" * 60)
     try:
-        db = get_supabase()
+        get_supabase()
         print("✅ Database connection initialized successfully")
-        print(f"📍 API Docs available at: http://localhost:8000/docs")
-        print(f"📍 User endpoints available at: http://localhost:8000/users")
+        print("📍 API Docs available at: http://localhost:8000/docs")
+        print("📍 User endpoints available at: http://localhost:8000/users")
         print("=" * 60)
     except Exception as e:
         print(f"❌ Database connection failed: {e}")

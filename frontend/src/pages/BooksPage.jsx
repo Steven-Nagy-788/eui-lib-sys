@@ -736,17 +736,19 @@ function BooksPage({ user }) {
                                   fontSize: '12px',
                                   fontWeight: '500',
                                   background: 
+                                    (copy.current_borrower_name || copy.status === 'maintenance') ? '#fee2e2' :
                                     copy.status === 'available' ? '#dcfce7' :
-                                    copy.status === 'maintenance' ? '#fef3c7' :
                                     copy.status === 'lost' ? '#f3f4f6' :
                                     '#fee2e2',
                                   color:
+                                    (copy.current_borrower_name || copy.status === 'maintenance') ? '#991b1b' :
                                     copy.status === 'available' ? '#166534' :
-                                    copy.status === 'maintenance' ? '#92400e' :
                                     copy.status === 'lost' ? '#4b5563' :
                                     '#991b1b'
                                 }}>
-                                  {copy.status}
+                                  {copy.current_borrower_name ? 'Checked Out' : 
+                                   copy.status === 'maintenance' ? 'Checked Out' : 
+                                   copy.status}
                                 </span>
                               </div>
                               <div style={{ fontSize: '14px', color: '#6b7280' }}>
@@ -756,14 +758,20 @@ function BooksPage({ user }) {
                                     📖 Borrowed by: <strong>{copy.current_borrower_name}</strong> ({copy.current_borrower_id})
                                   </span>
                                 )}
-                                {copy.status === 'available' && !copy.current_borrower_name && (
+                                {!copy.current_borrower_name && copy.status === 'available' && !copy.is_reference && (
                                   <span style={{ color: '#10b981' }}>✓ Available for loan</span>
+                                )}
+                                {!copy.current_borrower_name && copy.status === 'available' && copy.is_reference && (
+                                  <span style={{ color: '#6b7280' }}>📚 Reference only (Library use)</span>
+                                )}
+                                {(copy.current_borrower_name || copy.status === 'maintenance') && (
+                                  <span style={{ color: '#dc2626' }}> Unavailable (Checked Out)</span>
                                 )}
                               </div>
                             </div>
 
                             <div style={{ display: 'flex', gap: '8px' }}>
-                              {copy.status === 'available' && (
+                              {!copy.current_borrower_name && copy.status === 'available' && (
                                 <>
                                   <button
                                     onClick={() => handleUpdateCopyStatus(copy.id, 'maintenance', book.id)}

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr, UUID4, Field
+from pydantic import BaseModel, EmailStr, UUID4
 from enum import Enum
 from typing import Optional
 from datetime import datetime
@@ -45,6 +45,8 @@ class UserResponse(UserBase):
     is_blacklisted: bool
     blacklist_note: Optional[str] = None
     created_at: datetime
+    active_loans_count: int = 0
+    total_loans_count: int = 0
 
 class Token(BaseModel):
     access_token: str

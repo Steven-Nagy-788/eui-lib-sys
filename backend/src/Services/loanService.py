@@ -2,7 +2,6 @@ from typing import List, Optional
 from uuid import UUID
 from datetime import datetime, timedelta, timezone
 from ..Models.Loans import (
-    LoanCreate,
     LoanResponse,
     LoanUpdate,
     LoanStatus,
@@ -264,9 +263,8 @@ class LoanService:
         
         Actions:
         1. Calculate due date
-        2. Update loan status to 'active'
+        2. Update loan status to 'pending_pickup' (waiting for patron to pick up)
         3. Set approval_date and due_date
-        4. Update copy status (optional)
         """
         loan = await self.loan_broker.SelectLoanById(loan_id)
         if not loan:
@@ -278,14 +276,49 @@ class LoanService:
         # Calculate due date
         due_date = await self.calculate_due_date(UUID(loan["user_id"]), UUID(loan["copy_id"]))
         
-        # Update loan
+        # Update loan to pending_pickup status (approved, waiting for pickup)
         update_data = {
-            "status": "active",
+            "status": "pending_pickup",
             "approval_date": datetime.now(timezone.utc).isoformat(),
             "due_date": due_date.isoformat()
         }
         
         updated_loan = await self.loan_broker.UpdateLoan(loan_id, update_data)
+                # Set book copy status back to available
+        copy_id = UUID(loan["copy_id"])
+        await self.copy_broker.UpdateCopyStatus(copy_id, "available")
+                # Update book copy status to maintenance (reserved for pickup)
+        copy_id = UUID(loan["copy_id"])
+        await self.copy_broker.UpdateCopyStatus(copy_id, "maintenance")
+        
+        return LoanResponse(**updated_loan) if updated_loan else None
+
+    # ==================== LOAN CHECKOUT (PICKUP) ====================
+    
+    async def checkout_loan(self, loan_id: UUID) -> LoanResponse:
+        """
+        Mark a loan as checked out (patron picked up the book)
+        
+        Actions:
+        - Verify loan is in pending_pickup status
+        - Update status to 'active' (with patron)
+        """
+        loan = await self.loan_broker.SelectLoanById(loan_id)
+        if not loan:
+            raise ValueError("Loan not found")
+        
+        if loan["status"] != "pending_pickup":
+            raise ValueError(f"Loan is not pending pickup. Current status: {loan['status']}")
+        
+        # Update loan to active (patron has the book)
+        update_data = {
+            "status": "active"
+        }
+        
+        updated_loan = await self.loan_broker.UpdateLoan(loan_id, update_data)
+        
+        # Keep book copy status as maintenance (checked out to patron)
+        # Note: Copy remains unavailable until returned
         
         return LoanResponse(**updated_loan) if updated_loan else None
 
@@ -305,17 +338,20 @@ class LoanService:
         }
         
         updated_loan = await self.loan_broker.UpdateLoan(loan_id, update_data)
+        
+        # Book copy should remain available since loan was never approved
+        
         return LoanResponse(**updated_loan) if updated_loan else None
 
     # ==================== LOAN CANCELLATION ====================
     
     async def cancel_loan(self, loan_id: UUID, user_id: Optional[UUID] = None) -> LoanResponse:
         """
-        Cancel a loan request (User can cancel their own pending loans)
+        Cancel a loan request (User can cancel their own pending or pending_pickup loans)
         
         Actions:
         - Verify loan belongs to the user (if user_id provided)
-        - Only allow canceling 'pending' loans
+        - Only allow canceling 'pending' or 'pending_pickup' loans
         - Update status to 'canceled'
         """
         loan = await self.loan_broker.SelectLoanById(loan_id)
@@ -326,14 +362,20 @@ class LoanService:
         if user_id and str(loan["user_id"]) != str(user_id):
             raise ValueError("You can only cancel your own loan requests")
         
-        if loan["status"] != "pending":
-            raise ValueError(f"Only pending loans can be canceled. Current status: {loan['status']}")
+        if loan["status"] not in ["pending", "pending_pickup"]:
+            raise ValueError(f"Only pending or pending_pickup loans can be canceled. Current status: {loan['status']}")
         
         update_data = {
             "status": "canceled"
         }
         
         updated_loan = await self.loan_broker.UpdateLoan(loan_id, update_data)
+        
+        # If loan was pending_pickup, set book copy back to available
+        if loan["status"] == "pending_pickup":
+            copy_id = UUID(loan["copy_id"])
+            await self.copy_broker.UpdateCopyStatus(copy_id, "available")
+        
         return LoanResponse(**updated_loan) if updated_loan else None
 
     # ==================== LOAN RETURN ====================

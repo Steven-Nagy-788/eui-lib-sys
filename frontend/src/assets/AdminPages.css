@@ -358,16 +358,16 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-height: calc(100vh - 280px);
+  max-height: calc(100vh - 320px);
   overflow-y: auto;
   padding-right: 8px;
+  overflow-x: visible;
 }
 
 .patronCard {
   border: 1px solid #e5e7eb;
   border-radius: 8px;
-  overflow: hidden;
-  /* Remove positioning to allow natural flow */
+  overflow: visible;
   position: relative;
 }
 
@@ -486,8 +486,7 @@
   border-top: 1px solid #e5e7eb;
   padding: 16px;
   background: #f9fafb;
-  /* Changed animation to expand naturally downward */
-  overflow: hidden;
+  overflow: visible;
   transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
 }
 

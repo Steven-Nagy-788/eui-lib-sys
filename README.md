@@ -10,9 +10,9 @@ A comprehensive library management system for universities built with FastAPI, S
 
 ## Project Status
 
-**Overall Progress:** 75% Complete  
+**Overall Progress:** 90% Complete  
 **Backend API:** 100% ✅  
-**Frontend UI:** 40% 🟡  
+**Frontend UI:** 85% ✅  
 **Testing:** 30% 🟡
 
 > 📊 **Detailed Progress Report:** See [PROJECT-PROGRESS.md](PROJECT-PROGRESS.md) for comprehensive breakdown by grading rubric  
@@ -36,6 +36,7 @@ A comprehensive library management system for universities built with FastAPI, S
 - Infractions tracking and reset
 - User deletion (admin only)
 - User search by name, email, or university ID
+- **Loan count tracking** (active/total loans per user)
 
 **Book Catalog** ✅
 - Full CRUD operations (Create, Read, Update, Delete)
@@ -43,13 +44,16 @@ A comprehensive library management system for universities built with FastAPI, S
 - Book number and call number management
 - Partial updates (PATCH) support
 - Book search by title, author, or ISBN
+- **Books with stats and courses** (optimized single query)
 
 **Book Copies (Physical Inventory)** ✅
 - Individual and bulk copy creation
 - Automatic 30/70 reference/circulating split
 - Barcode system (accession numbers)
 - Availability statistics per book
-- Status management (available, checked_out, lost, damaged)
+- **Smart status management** (available/maintenance/lost)
+- **Real-time borrower tracking** (active loan detection)
+- **Accurate availability counting** (excludes checked-out copies)
 
 **Course Management** ✅
 - Full CRUD for courses with faculty tracking
@@ -59,7 +63,10 @@ A comprehensive library management system for universities built with FastAPI, S
 - Semester/term tracking
 
 **Loan/Circulation System** ✅
-- Complete loan request workflow
+- **Complete 3-state workflow:**
+  - `pending` - Request awaiting admin approval
+  - `pending_pickup` - Approved, ready for patron pickup
+  - `active` - Book checked out to patron
 - Multi-step validation:
   - Blacklist checking
   - Max books limit enforcement (from loan_policies)
@@ -68,10 +75,13 @@ A comprehensive library management system for universities built with FastAPI, S
 - Smart due date calculation:
   - Course override (90 days if enrolled in course)
   - Role-based defaults (professor, TA, student)
-- Approval/rejection workflow (admin only)
+- **Approval/checkout workflow** (admin only)
+- **Cancel/reject operations**
 - Return processing with automatic infraction tracking
+- **Automatic copy status updates** (available ↔ maintenance)
 - Overdue detection and marking
 - Loan search with multiple filters
+- **Loans with book/user details** (optimized queries)
 
 **Statistics & Analytics** ✅
 - Dashboard overview (books, users, loans)
@@ -86,38 +96,88 @@ A comprehensive library management system for universities built with FastAPI, S
 - Dependency injection for auth (no manual token checking)
 - Comprehensive documentation and API guides
 
-### 🔴 Still Missing (Backend Tasks)
+---
 
-**Ba🟡 Frontend Status (40% Complete)
+### 🟢 Frontend Status (85% Complete)
 
-#### ✅ Completed
-- **Authentication** (100%)
-  - Login page with university branding
-  - JWT token management
-  - Auth context with protected routes
-  - Automatic auth header injection
-  
-- **Infrastructure** (100%)
-  - Complete API service layer
-  - All backend endpoints integrated
-  - Error handling middleware
-  - Axios interceptors
+#### ✅ Completed Features
 
-#### ⭕ Not Started (60%)
-- **Student Pages** (0%)
-  - Dashboard (active loans, pending requests, course books)
-  - Book catalog with search
-  - My loans history
-  - Loan request flow
-  - Notices/alerts
-  
-- **Admin Pages** (0%)
-  - Dashboard with statistics
-  - Books management (CRUD + bulk operations)
-  - Students management (users, enrollments, blacklist)
-  - Circulation (approve/reject/return)
-  - Course management
-  - Reports and analytics
+**Authentication & Layout** (100%)
+- University-branded login page
+- JWT token management with auto-refresh
+- Protected route system
+- Responsive layout with sidebar navigation
+- User profile display
+
+**Admin Pages** (90%)
+- ✅ **Books Management** - Full CRUD with copy management
+  - Search by title/author/ISBN
+  - Add/edit/delete books
+  - View copies with borrower info
+  - **Visual status indicators** (available/checked out/reference)
+  - Bulk copy creation
+  - Faculty filtering
+- ✅ **Patrons Management** - Complete user administration
+  - User listing with search
+  - **Real-time loan counts** (active/total)
+  - Blacklist management with reasons
+  - Infractions tracking
+  - Role filtering (student/professor/TA)
+  - Detailed patron view with enrollment info
+- ✅ **Circulation** - Loan workflow management
+  - **Approved loans only** (pending_pickup + active)
+  - "Picked Up" button for checkout
+  - "Returned" button for returns
+  - Status filtering
+  - Overdue detection
+- ✅ **Requests** - Loan request approval
+  - View pending requests
+  - **Accept** button (→ pending_pickup)
+  - Reject button with reason
+  - Borrower information
+- 🟡 **Cataloging** - Partially complete (80%)
+  - Add books interface
+  - Bulk operations
+  - Missing: Course book assignments
+- 🟡 **Reports** - Partially complete (60%)
+  - Basic statistics display
+  - Missing: Charts and advanced analytics
+
+**Patron Pages** (85%)
+- ✅ **Books Browse** - Search and reserve books
+  - View available copies
+  - Reserve button (creates loan request)
+  - Due date calculation preview
+  - Faculty/sort filtering
+- ✅ **Bookbag** - Personal loan management
+  - Current loans with status
+  - **"Ready for Pickup"** indicator for approved loans
+  - Loan history
+  - Due date tracking with overdue warnings
+  - Cancel request option
+- 🟡 **Profile** - User information (70%)
+  - View profile details
+  - Missing: Edit functionality
+- ⭕ **Notices** - Not implemented (0%)
+
+**Infrastructure** (100%)
+- Complete API service layer with all endpoints
+- React Query for caching and state management
+- Toast notifications
+- Error handling middleware
+- Axios interceptors
+- Loading states and spinners
+
+#### 🟡 Partially Complete (15%)
+
+**Missing Features:**
+- Patron notices/alerts page
+- Profile editing
+- Course book recommendations
+- Advanced statistics with charts
+- Course management interface
+
+---
 
 ### 🟡 Testing Status (30% Complete)
 
@@ -125,6 +185,7 @@ A comprehensive library management system for universities built with FastAPI, S
 - All endpoints tested via FastAPI `/docs`
 - Authentication flow verified
 - Business logic validated
+- **Complete loan workflow tested** (request → approve → checkout → return)
 
 #### ⭕ Missing Automated Tests
 - Unit tests (0% coverage)

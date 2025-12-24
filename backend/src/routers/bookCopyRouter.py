@@ -173,16 +173,6 @@ async def update_copy_status(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e)
         )
-
-
-@router.patch("/{copy_id}/status/{status}")
-async def update_copy_status(
-    copy_id: UUID,
-    status: BookStatus,
-    service: BookCopyService = Depends(get_book_copy_service),
-    current_user: dict = Depends(require_admin)
-):
-    """Quick status update endpoint (Admin only)"""
     updated_copy = await service.ModifyCopyStatus(copy_id, status)
     if updated_copy is None:
         raise HTTPException(

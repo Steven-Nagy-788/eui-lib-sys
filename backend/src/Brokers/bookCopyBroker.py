@@ -44,7 +44,7 @@ class BookCopyBroker:
         for copy in response.data:
             loans = copy.pop('loans', [])
             # Find active loan
-            active_loan = next((l for l in loans if l.get('status') == 'active'), None) if loans else None
+            active_loan = next((loan for loan in loans if loan.get('status') == 'active'), None) if loans else None
             
             flattened = {
                 **copy,
@@ -123,6 +123,10 @@ class BookCopyBroker:
             return response.data[0]
         return None
     
+    async def UpdateCopyStatus(self, copy_id: UUID, status: str) -> Optional[dict]:
+        """Update a book copy's status"""
+        return await self.UpdateCopy(copy_id, {"status": status})
+    
     async def DeleteCopy(self, copy_id: UUID) -> bool:
         """Delete a book copy"""
         def _delete():
@@ -133,13 +137,26 @@ class BookCopyBroker:
     async def CountCopiesByBookId(self, book_id: UUID) -> dict:
         """Count total, available, and reference copies for a book"""
         def _fetch_all():
-            return self.client.table("book_copies").select("*").eq("book_id", str(book_id)).execute()
+            # Fetch copies with their active loans
+            return self.client.table("book_copies").select(
+                "*,"
+                "loans!left(id, status)"
+            ).eq("book_id", str(book_id)).execute()
         
         response = await asyncio.to_thread(_fetch_all)
         copies = response.data if response.data else []
         
         total = len(copies)
-        available = sum(1 for c in copies if c.get("status") == "available")
+        # Count as available only if status is 'available' AND no active/pending_pickup loans
+        available = 0
+        for c in copies:
+            if c.get("status") == "available":
+                loans = c.get("loans", [])
+                # Check if there are any active or pending_pickup loans
+                has_active_loan = any(loan.get("status") in ["active", "pending_pickup"] for loan in loans)
+                if not has_active_loan:
+                    available += 1
+        
         reference = sum(1 for c in copies if c.get("is_reference") is True)
         
         return {

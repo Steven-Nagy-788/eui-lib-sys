@@ -6,6 +6,7 @@ from typing import Optional
 # --- ENUMS ---
 class LoanStatus(str, Enum):
     PENDING = "pending"
+    PENDING_PICKUP = "pending_pickup"
     ACTIVE = "active"
     CANCELED = "canceled"
     RETURNED = "returned"

@@ -2,7 +2,7 @@
 
 import { useState, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
-import { getLoansByStatus, returnLoan, rejectLoan, approveLoan } from "../api/loansService"
+import { getLoansByStatus, returnLoan, rejectLoan, approveLoan, checkoutLoan } from "../api/loansService"
 import { getUser } from "../api/usersService"
 import toast from "../utils/toast"
 import Spinner from "../components/Spinner"
@@ -24,7 +24,7 @@ function CirculationCard({ item, onUpdate }) {
   const handlePickedUp = async () => {
     try {
       setIsProcessing(true)
-      await approveLoan(item.id)
+      await checkoutLoan(item.id)
       toast.success('Loan marked as picked up')
       onUpdate()
     } catch (error) {
@@ -84,6 +84,8 @@ function CirculationCard({ item, onUpdate }) {
     
     switch (item.status) {
       case "pending":
+        return <span className="circulationStatusPending">Pending Request</span>
+      case "pending_pickup":
         return <span className="circulationStatusPending">Pending Pickup</span>
       case "active":
         return <span className="circulationStatusOwned">With Patron</span>
@@ -99,7 +101,7 @@ function CirculationCard({ item, onUpdate }) {
   }
 
   const getDaysInfo = () => {
-    if (!item.due_date || item.status === 'pending') return null
+    if (!item.due_date || item.status === 'pending' || item.status === 'pending_pickup') return null
     
     const dueDate = new Date(item.due_date)
     const now = new Date()
@@ -116,7 +118,7 @@ function CirculationCard({ item, onUpdate }) {
   }
 
   const getButtons = () => {
-    if (item.status === "pending") {
+    if (item.status === "pending_pickup") {
       return (
         <div className="circulationButtons">
           <button className="circulationCancelButton" onClick={handleCancel} disabled={isProcessing}>
@@ -227,13 +229,14 @@ function AdminCirculationPage() {
   const { data: loans = [], isLoading, error } = useQuery({
     queryKey: ['circulation'],
     queryFn: async () => {
-      // Fetch all active and pending loans - now returns LoanWithBookInfo with embedded book details
-      const [activeLoans, pendingLoans] = await Promise.all([
+      // Fetch only approved loans for circulation (pending_pickup and active)
+      // Pending requests should only appear in the Requests page
+      const [activeLoans, pendingPickupLoans] = await Promise.all([
         getLoansByStatus('active').catch(() => []),
-        getLoansByStatus('pending').catch(() => [])
+        getLoansByStatus('pending_pickup').catch(() => [])
       ])
       
-      const allLoans = [...activeLoans, ...pendingLoans]
+      const allLoans = [...activeLoans, ...pendingPickupLoans]
       
       // Fetch user details and extract embedded book details
       const loansWithDetails = await Promise.all(
@@ -331,6 +334,7 @@ function AdminCirculationPage() {
             onChange={(e) => setStatusFilter(e.target.value)}
           >
             <option value="all">All Status</option>
+            <option value="pending_pickup">Pending Pickup</option>
             <option value="active">With Patron</option>
             <option value="overdue">Overdue</option>
           </select>

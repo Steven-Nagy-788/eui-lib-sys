@@ -44,6 +44,7 @@ function PatronBookbagPage() {
 
   const getStatusDisplay = (loan) => {
     if (loan.status === 'pending') return 'Pending Approval'
+    if (loan.status === 'pending_pickup') return 'Ready for Pickup'
     if (loan.status === 'active') {
       // Check if overdue
       if (loan.is_overdue || (loan.due_date && new Date(loan.due_date) < new Date())) {
@@ -72,10 +73,10 @@ function PatronBookbagPage() {
     return date.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
   }
 
-  // Separate current loans (pending, active, overdue) from history (returned, rejected)
+  // Separate current loans (pending, pending_pickup, active, overdue) from history (returned, rejected, canceled)
   const { currentLoans, historyLoans } = useMemo(() => {
     const current = loans.filter(loan => 
-      ['pending', 'active', 'overdue'].includes(loan.status) || 
+      ['pending', 'pending_pickup', 'active', 'overdue'].includes(loan.status) || 
       (loan.status === 'active' && loan.is_overdue)
     )
     const history = loans.filter(loan => 
@@ -301,6 +302,7 @@ function PatronBookbagPage() {
                               status === "Borrowed" ? "statusOwned" :
                               status === "Overdue" ? "statusOverdue" :
                               status === "Pending Approval" ? "statusPending" :
+                              status === "Ready for Pickup" ? "statusPending" :
                               status === "Returned" ? "statusReturned" :
                               status === "Rejected" ? "statusRejected" :
                               "statusBadge"

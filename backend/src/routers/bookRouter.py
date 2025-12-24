@@ -5,7 +5,7 @@ from uuid import UUID
 from ..utils.dependencies import get_book_service
 from ..utils.auth import require_admin, get_current_user
 from ..Services.bookService import BookService
-from ..Models.Books import BookCreate, BookResponse, BookWithStatsResponse, BookCopyStats
+from ..Models.Books import BookCreate, BookResponse, BookWithStatsResponse, BookWithStatsAndCoursesResponse
 
 router = APIRouter(
     prefix="/books",
@@ -32,6 +32,17 @@ async def get_books_with_stats(
 ):
     """Get books with copy statistics in one call"""
     return await service.RetrieveBooksWithStats(skip=skip, limit=limit)
+
+
+@router.get("/with-stats-and-courses", response_model=List[BookWithStatsAndCoursesResponse])
+async def get_books_with_stats_and_courses(
+    skip: int = 0,
+    limit: int = 100,
+    service: BookService = Depends(get_book_service),
+    current_user: dict = Depends(get_current_user)
+):
+    """Get books with copy statistics and associated courses in one call"""
+    return await service.RetrieveBooksWithStatsAndCourses(skip=skip, limit=limit)
 
 
 @router.get("/{book_id}", response_model=BookResponse)
