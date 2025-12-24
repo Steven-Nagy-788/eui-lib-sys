@@ -1,6 +1,7 @@
 from pydantic import BaseModel, UUID4
 from typing import Optional
 
+
 # --- COURSES ---
 class CourseBase(BaseModel):
     code: str  # Primary Key e.g., "C-MA111"
@@ -9,8 +10,10 @@ class CourseBase(BaseModel):
     faculty: Optional[str] = None
     course_loan_days: int = 90
 
+
 class CourseCreate(CourseBase):
     pass
+
 
 class CourseUpdate(BaseModel):
     name: Optional[str] = None
@@ -18,8 +21,10 @@ class CourseUpdate(BaseModel):
     faculty: Optional[str] = None
     course_loan_days: Optional[int] = None
 
+
 class CourseResponse(CourseBase):
     pass
+
 
 # --- ENROLLMENTS ---
 class EnrollmentBase(BaseModel):
@@ -27,19 +32,24 @@ class EnrollmentBase(BaseModel):
     course_code: str
     semester: str
 
+
 class EnrollmentCreate(EnrollmentBase):
     pass
 
+
 class EnrollmentResponse(EnrollmentBase):
     id: UUID4
+
 
 # --- COURSE BOOKS ---
 class CourseBookBase(BaseModel):
     course_code: str
     book_id: UUID4
 
+
 class CourseBookCreate(CourseBookBase):
     pass
+
 
 class CourseBookResponse(CourseBookBase):
     pass

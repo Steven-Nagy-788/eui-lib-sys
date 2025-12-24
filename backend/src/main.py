@@ -18,7 +18,7 @@ app = FastAPI(
     Library Management System.
     """,
     docs_url=None,
-    redoc_url=None
+    redoc_url=None,
 )
 
 app.add_middleware(
@@ -36,6 +36,7 @@ app.include_router(course_router)
 app.include_router(loan_router)
 app.include_router(stats_router)
 
+
 @app.get("/docs", include_in_schema=False)
 async def scalar_html():
     """Scalar API documentation"""
@@ -43,6 +44,7 @@ async def scalar_html():
         openapi_url=app.openapi_url,
         title=app.title,
     )
+
 
 @app.on_event("startup")
 async def startup_event():
@@ -60,6 +62,7 @@ async def startup_event():
         print(f"❌ Database connection failed: {e}")
         print("=" * 60)
 
+
 @app.on_event("shutdown")
 async def shutdown_event():
     """Cleanup on shutdown"""
@@ -71,7 +74,7 @@ async def shutdown_event():
 # ============================================
 # RUN COMMAND:
 # uvicorn src.main:app --reload --host 0.0.0.0 --port 8000
-# 
+#
 # Or from project root:
 # python -m uvicorn src.main:app --reload
 # ============================================

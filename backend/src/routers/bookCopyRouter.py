@@ -6,18 +6,15 @@ from ..utils.dependencies import get_book_copy_service
 from ..utils.auth import require_admin, get_current_user
 from ..Services.bookCopyService import BookCopyService
 from ..Models.Books import (
-    BookCopyCreate, 
-    BookCopyResponse, 
-    BookCopyUpdate, 
+    BookCopyCreate,
+    BookCopyResponse,
+    BookCopyUpdate,
     BookStatus,
     AddInventoryRequest,
-    BookCopyWithBorrowerInfo
+    BookCopyWithBorrowerInfo,
 )
 
-router = APIRouter(
-    prefix="/book-copies",
-    tags=["book-copies"]
-)
+router = APIRouter(prefix="/book-copies", tags=["book-copies"])
 
 
 @router.get("/", response_model=List[BookCopyResponse])
@@ -25,7 +22,7 @@ async def get_all_copies(
     skip: int = 0,
     limit: int = 100,
     service: BookCopyService = Depends(get_book_copy_service),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
     """Get all book copies with pagination"""
     return await service.RetrieveAllCopies(skip=skip, limit=limit)
@@ -34,9 +31,11 @@ async def get_all_copies(
 @router.get("/book/{book_id}", response_model=List[BookCopyWithBorrowerInfo])
 async def get_copies_by_book(
     book_id: UUID,
-    available_only: bool = Query(False, description="Filter to only available circulating copies"),
+    available_only: bool = Query(
+        False, description="Filter to only available circulating copies"
+    ),
     service: BookCopyService = Depends(get_book_copy_service),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
     """Get all copies of a specific book with borrower info"""
     return await service.RetrieveCopiesByBookIdWithBorrowerInfo(book_id, available_only)
@@ -46,7 +45,7 @@ async def get_copies_by_book(
 async def get_copy_stats(
     book_id: UUID,
     service: BookCopyService = Depends(get_book_copy_service),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
     """Get statistics for book copies (total, available, reference, circulating)"""
     return await service.RetrieveCopyStats(book_id)
@@ -56,14 +55,14 @@ async def get_copy_stats(
 async def get_copy_by_barcode(
     accession_number: int,
     service: BookCopyService = Depends(get_book_copy_service),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
     """Get a copy by its barcode/accession number (for scanner input)"""
     copy = await service.RetrieveCopyByAccessionNumber(accession_number)
     if copy is None:
         raise HTTPException(
-            status_code=404, 
-            detail=f"Copy with accession number {accession_number} not found"
+            status_code=404,
+            detail=f"Copy with accession number {accession_number} not found",
         )
     return copy
 
@@ -72,7 +71,7 @@ async def get_copy_by_barcode(
 async def get_copy(
     copy_id: UUID,
     service: BookCopyService = Depends(get_book_copy_service),
-    current_user: dict = Depends(get_current_user)
+    current_user: dict = Depends(get_current_user),
 ):
     """Get a specific copy by ID"""
     copy = await service.RetrieveCopyById(copy_id)
@@ -85,47 +84,45 @@ async def get_copy(
 async def create_single_copy(
     copy: BookCopyCreate,
     service: BookCopyService = Depends(get_book_copy_service),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin),
 ):
     """Create a single book copy manually (Admin only)"""
     try:
         new_copy = await service.AddSingleCopy(copy)
         return new_copy
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
-@router.post("/bulk", response_model=List[BookCopyResponse], status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/bulk", response_model=List[BookCopyResponse], status_code=status.HTTP_201_CREATED
+)
 async def create_bulk_copies(
     request: AddInventoryRequest,
-    reference_percentage: int = Query(30, ge=0, le=100, description="Percentage to mark as reference"),
+    reference_percentage: int = Query(
+        30, ge=0, le=100, description="Percentage to mark as reference"
+    ),
     service: BookCopyService = Depends(get_book_copy_service),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin),
 ):
     """
     Create multiple copies at once with automatic reference/circulating split
-    
+
     - **book_id**: The book to create copies for
     - **quantity**: Number of copies to create
     - **reference_percentage**: Percentage to mark as reference (default 30%)
-    
+
     Example: Creating 10 copies with 30% reference will create 3 reference + 7 circulating copies
     """
     try:
         new_copies = await service.AddBulkCopies(
             book_id=request.book_id,
             quantity=request.quantity,
-            reference_percentage=reference_percentage
+            reference_percentage=reference_percentage,
         )
         return new_copies
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.patch("/{copy_id}", response_model=BookCopyResponse)
@@ -133,7 +130,7 @@ async def update_copy(
     copy_id: UUID,
     copy_update: BookCopyUpdate,
     service: BookCopyService = Depends(get_book_copy_service),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin),
 ):
     """Update a book copy - status, reference flag, etc. (Admin only)"""
     try:
@@ -141,14 +138,11 @@ async def update_copy(
         if updated_copy is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Copy with id {copy_id} not found"
+                detail=f"Copy with id {copy_id} not found",
             )
         return updated_copy
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 
 @router.patch("/{copy_id}/status/{status}", response_model=BookCopyResponse)
@@ -156,7 +150,7 @@ async def update_copy_status(
     copy_id: UUID,
     status: BookStatus,
     service: BookCopyService = Depends(get_book_copy_service),
-    current_user: dict = Depends(require_admin)
+    current_user: dict = Depends(require_admin),
 ):
     """Update copy status (available, borrowed, maintenance, lost) - Admin only"""
     try:
@@ -165,33 +159,29 @@ async def update_copy_status(
         if updated_copy is None:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Copy with id {copy_id} not found"
+                detail=f"Copy with id {copy_id} not found",
             )
         return updated_copy
     except ValueError as e:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=str(e)
-        )
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     updated_copy = await service.ModifyCopyStatus(copy_id, status)
     if updated_copy is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Copy with id {copy_id} not found"
+            detail=f"Copy with id {copy_id} not found",
         )
     return updated_copy
 
 
 @router.delete("/{copy_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_copy(
-    copy_id: UUID,
-    service: BookCopyService = Depends(get_book_copy_service)
+    copy_id: UUID, service: BookCopyService = Depends(get_book_copy_service)
 ):
     """Delete a book copy"""
     success = await service.RemoveCopy(copy_id)
     if not success:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Copy with id {copy_id} not found"
+            detail=f"Copy with id {copy_id} not found",
         )
     return None

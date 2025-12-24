@@ -3,11 +3,13 @@ from enum import Enum
 from typing import Optional
 from datetime import datetime
 
+
 # --- ENUMS ---
 class UserRole(str, Enum):
     ADMIN = "admin"
     STUDENT = "student"
     PROFESSOR = "professor"
+
 
 # --- SHARED BASE ---
 class UserBase(BaseModel):
@@ -18,13 +20,16 @@ class UserBase(BaseModel):
     faculty: Optional[str] = None
     academic_year: Optional[int] = None
 
+
 # --- INPUTS ---
 class UserCreate(UserBase):
     password: str  # Plain text, will be hashed by Service
 
+
 class UserLogin(BaseModel):
     email: EmailStr
     password: str
+
 
 class UserUpdate(BaseModel):
     university_id: Optional[str] = None
@@ -38,6 +43,7 @@ class UserUpdate(BaseModel):
     is_blacklisted: Optional[bool] = None
     blacklist_note: Optional[str] = None
 
+
 # --- OUTPUTS ---
 class UserResponse(UserBase):
     id: UUID4
@@ -48,9 +54,11 @@ class UserResponse(UserBase):
     active_loans_count: int = 0
     total_loans_count: int = 0
 
+
 class Token(BaseModel):
     access_token: str
     token_type: str
+
 
 class UserStats(BaseModel):
     active_loans: int = 0
@@ -58,6 +66,7 @@ class UserStats(BaseModel):
     overdue_loans: int = 0
     infractions: int = 0
     pending_requests: int = 0
+
 
 class UserDashboardResponse(BaseModel):
     user: UserResponse
