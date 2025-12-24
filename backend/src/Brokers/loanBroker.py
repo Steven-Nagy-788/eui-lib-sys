@@ -62,7 +62,9 @@ class LoanBroker:
                 self.client.table("loans")
                 .select(
                     "*,"
-                    "book_copies!inner(accession_number, book_id, books!inner(id, title, author, isbn, publisher, book_pic_url))"
+                    "book_copies!inner("
+                    "accession_number, book_id, "
+                    "books!inner(id, title, author, isbn, publisher, book_pic_url))"
                 )
                 .eq("user_id", str(user_id))
             )
@@ -142,7 +144,9 @@ class LoanBroker:
                 self.client.table("loans")
                 .select(
                     "*,"
-                    "book_copies!inner(accession_number, book_id, books!inner(id, title, author, isbn, publisher, book_pic_url))"
+                    "book_copies!inner("
+                    "accession_number, book_id, "
+                    "books!inner(id, title, author, isbn, publisher, book_pic_url))"
                 )
                 .eq("status", status)
             )
