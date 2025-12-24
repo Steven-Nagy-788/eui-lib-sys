@@ -4,6 +4,7 @@ import { useState, useMemo } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { getUserLoans, rejectLoan } from "../api/loansService"
 import { getUserFromToken } from "../api/authService"
+import { ConfirmModal } from "../components/Modal"
 import Spinner from "../components/Spinner"
 import toast from "../utils/toast"
 import "../assets/PatronPages.css"
@@ -12,6 +13,7 @@ import "../assets/Responsive.css"
 function PatronBookbagPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [activeTab, setActiveTab] = useState("current") // "current" or "history"
+  const [cancelingLoanId, setCancelingLoanId] = useState(null)
 
   const currentUser = getUserFromToken()
   const queryClient = useQueryClient()
@@ -88,8 +90,8 @@ function PatronBookbagPage() {
   // Cancel mutation for patrons to cancel their own requests
   const cancelMutation = useMutation({
     mutationFn: (loanId) => rejectLoan(loanId),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['userLoans'])
+    onSuccess: async () => {
+      await queryClient.invalidateQueries(['userLoans'])
       toast.success('Request cancelled successfully')
     },
     onError: (error) => {
@@ -98,7 +100,14 @@ function PatronBookbagPage() {
   })
 
   const handleCancelRequest = (loanId) => {
-    cancelMutation.mutate(loanId)
+    setCancelingLoanId(loanId)
+  }
+
+  const confirmCancel = () => {
+    if (cancelingLoanId) {
+      cancelMutation.mutate(cancelingLoanId)
+      setCancelingLoanId(null)
+    }
   }
 
   // Filter based on search and active tab
@@ -112,12 +121,6 @@ function PatronBookbagPage() {
       return matchesSearch
     })
   }, [currentLoans, historyLoans, activeTab, searchQuery])
-
-  const handleCancelReservation = (loanId) => {
-    if (confirm('Are you sure you want to cancel this reservation?')) {
-      cancelMutation.mutate(loanId)
-    }
-  }
 
   if (isLoading) {
     return (
@@ -358,6 +361,17 @@ function PatronBookbagPage() {
           </div>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={cancelingLoanId !== null}
+        onClose={() => setCancelingLoanId(null)}
+        onConfirm={confirmCancel}
+        title="Cancel Reservation"
+        message="Are you sure you want to cancel this book reservation?"
+        confirmText="Yes, Cancel"
+        cancelText="No, Keep It"
+        isDestructive={true}
+      />
     </div>
   )
 }

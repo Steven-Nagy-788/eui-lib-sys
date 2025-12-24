@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react"
 import { getLoansByStatus, approveLoan, rejectLoan } from "../api/loansService"
 import { getUser } from "../api/usersService"
+import { PromptModal } from "../components/Modal"
 import toast from "../utils/toast"
 import "../assets/AdminPages.css"
 import "../assets/Responsive.css"
@@ -13,6 +14,7 @@ function AdminRequestsPage() {
   const [requests, setRequests] = useState([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
+  const [rejectingLoanId, setRejectingLoanId] = useState(null)
 
   const loadRequests = useCallback(async () => {
     try {
@@ -71,19 +73,22 @@ function AdminRequestsPage() {
     try {
       await approveLoan(loanId)
       toast.success('Loan request approved successfully')
-      loadRequests()
+      await loadRequests()
     } catch (err) {
       console.error('Failed to approve loan:', err)
       toast.error(err.message || 'Failed to approve loan request')
     }
   }
 
-  const handleReject = async (loanId) => {
-    const reason = prompt('Enter reason for rejection (optional):')
+  const handleReject = (loanId) => {
+    setRejectingLoanId(loanId)
+  }
+
+  const confirmReject = async (reason) => {
     try {
-      await rejectLoan(loanId, reason || undefined)
+      await rejectLoan(rejectingLoanId, reason || undefined)
       toast.success('Loan request rejected')
-      loadRequests()
+      await loadRequests()
     } catch (err) {
       console.error('Failed to reject loan:', err)
       toast.error(err.message || 'Failed to reject loan request')
@@ -225,6 +230,17 @@ function AdminRequestsPage() {
           </div>
         )}
       </div>
+
+      <PromptModal
+        isOpen={rejectingLoanId !== null}
+        onClose={() => setRejectingLoanId(null)}
+        onSubmit={confirmReject}
+        title="Reject Loan Request"
+        message="Please provide a reason for rejection (optional):"
+        placeholder="Enter reason..."
+        submitText="Reject"
+        cancelText="Cancel"
+      />
     </div>
   )
 }

@@ -74,16 +74,6 @@ function AdminConfigurationPage() {
     return labels[role] || role
   }
 
-  const getRoleIcon = (role) => {
-    const icons = {
-      student: '🎓',
-      professor: '👨‍🏫',
-      ta: '👨‍💼',
-      admin: '⚙️'
-    }
-    return icons[role] || '👤'
-  }
-
   return (
     <div className="adminDatabaseContainer">
       <div className="adminDatabaseHeader">
@@ -101,7 +91,7 @@ function AdminConfigurationPage() {
           fontSize: '14px',
           color: '#92400e'
         }}>
-          <strong>ℹ️ Important Note:</strong>
+          <strong>Important Note:</strong>
           <p style={{ margin: '6px 0 0 0', lineHeight: '1.5' }}>
             If a student is enrolled in a course that has a book associated with it, 
             the <strong>course's loan duration</strong> will override the role-based policy. 
@@ -145,9 +135,6 @@ function AdminConfigurationPage() {
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flex: 1 }}>
-                    <div style={{ fontSize: '32px' }}>
-                      {getRoleIcon(policy.role)}
-                    </div>
                     <div style={{ flex: 1 }}>
                       <h3 style={{ margin: '0 0 8px 0', fontSize: '18px', fontWeight: '600' }}>
                         {getRoleLabel(policy.role)}
@@ -204,16 +191,13 @@ function AdminConfigurationPage() {
 
             <div className="modalBody">
               <div style={{ marginBottom: '20px', padding: '12px', background: '#f3f4f6', borderRadius: '6px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <span style={{ fontSize: '24px' }}>{getRoleIcon(editingRole)}</span>
-                  <div>
-                    <p style={{ margin: 0, fontWeight: '600', fontSize: '16px' }}>
-                      {getRoleLabel(editingRole)}
-                    </p>
-                    <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
-                      Configure loan limits and duration
-                    </p>
-                  </div>
+                <div>
+                  <p style={{ margin: 0, fontWeight: '600', fontSize: '16px' }}>
+                    {getRoleLabel(editingRole)}
+                  </p>
+                  <p style={{ margin: 0, fontSize: '14px', color: '#6b7280' }}>
+                    Configure loan limits and duration
+                  </p>
                 </div>
               </div>
 
@@ -255,7 +239,7 @@ function AdminConfigurationPage() {
                 marginTop: '16px'
               }}>
                 <p style={{ margin: 0, fontSize: '14px', color: '#92400e' }}>
-                  ⚠️ <strong>Note:</strong> Changes will apply to new loans only. Existing active loans will not be affected.
+                  <strong>Note:</strong> Changes will apply to new loans only. Existing active loans will not be affected.
                 </p>
               </div>
             </div>

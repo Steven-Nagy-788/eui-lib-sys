@@ -4,6 +4,7 @@ import { useState, useCallback } from "react"
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { getLoansByStatus, returnLoan, rejectLoan, approveLoan, checkoutLoan } from "../api/loansService"
 import { getUser } from "../api/usersService"
+import { PromptModal, ConfirmModal } from "../components/Modal"
 import toast from "../utils/toast"
 import Spinner from "../components/Spinner"
 import "../assets/AdminPages.css"
@@ -11,6 +12,8 @@ import "../assets/Responsive.css"
 
 function CirculationCard({ item, onUpdate }) {
   const [isProcessing, setIsProcessing] = useState(false)
+  const [showCancelModal, setShowCancelModal] = useState(false)
+  const [showReturnModal, setShowReturnModal] = useState(false)
 
   const getInitials = (name) => {
     if (!name) return '?'
@@ -35,13 +38,16 @@ function CirculationCard({ item, onUpdate }) {
     }
   }
 
-  const handleCancel = async () => {
-    const reason = prompt('Enter reason for cancellation (optional):')
+  const handleCancel = () => {
+    setShowCancelModal(true)
+  }
+
+  const confirmCancel = async (reason) => {
     try {
       setIsProcessing(true)
       await rejectLoan(item.id, reason || undefined)
       toast.success('Loan cancelled')
-      onUpdate()
+      await onUpdate()
     } catch (error) {
       console.error('Failed to cancel loan:', error)
       toast.error(error.message || 'Failed to cancel loan')
@@ -50,19 +56,21 @@ function CirculationCard({ item, onUpdate }) {
     }
   }
 
-  const handleReturned = async () => {
+  const handleReturned = () => {
     const isOverdue = item.status === 'overdue'
-    let incrementInfractions = false
-    
     if (isOverdue) {
-      incrementInfractions = confirm('This book is overdue. Add an infraction to the patron?')
+      setShowReturnModal(true)
+    } else {
+      processReturn(false)
     }
-    
+  }
+
+  const processReturn = async (incrementInfractions) => {
     try {
       setIsProcessing(true)
       await returnLoan(item.id, incrementInfractions)
       toast.success('Book marked as returned')
-      onUpdate()
+      await onUpdate()
     } catch (error) {
       console.error('Failed to process return:', error)
       toast.error(error.message || 'Failed to process return')
@@ -216,6 +224,27 @@ function CirculationCard({ item, onUpdate }) {
           </div>
         </div>
       </div>
+
+      <PromptModal
+        isOpen={showCancelModal}
+        onClose={() => setShowCancelModal(false)}
+        onSubmit={confirmCancel}
+        title="Cancel Loan"
+        message="Please provide a reason for cancellation (optional):"
+        placeholder="Enter reason..."
+        submitText="Cancel Loan"
+        cancelText="Close"
+      />
+
+      <ConfirmModal
+        isOpen={showReturnModal}
+        onClose={() => setShowReturnModal(false)}
+        onConfirm={() => processReturn(true)}
+        title="Overdue Book Return"
+        message="This book is overdue. Would you like to add an infraction to the patron's record?"
+        confirmText="Yes, Add Infraction"
+        cancelText="No, Just Return"
+      />
     </div>
   )
 }
@@ -293,8 +322,8 @@ function AdminCirculationPage() {
     staleTime: 1 * 60 * 1000, // 1 minute cache
   })
 
-  const handleUpdate = useCallback(() => {
-    queryClient.invalidateQueries(['circulation'])
+  const handleUpdate = useCallback(async () => {
+    await queryClient.invalidateQueries(['circulation'])
   }, [queryClient])
 
   const filteredCirculation = loans.filter((item) => {

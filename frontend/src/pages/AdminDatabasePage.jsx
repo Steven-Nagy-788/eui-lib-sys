@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { getDashboardStats, getMostBorrowedBooks, getTopBorrowers } from "../api/statsService"
 import { deleteBook, createBook } from "../api/booksService"
 import { createBulkCopies } from "../api/bookCopiesService"
+import { ConfirmModal } from "../components/Modal"
 import toast from "../utils/toast"
 import "../assets/AdminPages.css"
 import "../assets/Responsive.css"
@@ -29,6 +30,7 @@ function AdminDatabasePage() {
   const [removeSearch, setRemoveSearch] = useState("")
   const [searchResults, setSearchResults] = useState([])
   const [isSearching, setIsSearching] = useState(false)
+  const [deletingBookId, setDeletingBookId] = useState(null)
 
   useEffect(() => {
     loadStatistics()
@@ -111,19 +113,21 @@ function AdminDatabasePage() {
     }
   }
 
-  const handleRemoveBook = async (bookId) => {
-    if (!confirm('Are you sure you want to delete this book and all its copies?')) {
-      return
-    }
-    
+  const handleRemoveBook = (bookId) => {
+    setDeletingBookId(bookId)
+  }
+
+  const confirmDelete = async () => {
     try {
-      await deleteBook(bookId)
+      await deleteBook(deletingBookId)
       toast.success('Book removed successfully')
-      setSearchResults(searchResults.filter(b => b.id !== bookId))
-      loadStatistics()
+      setSearchResults(searchResults.filter(b => b.id !== deletingBookId))
+      await loadStatistics()
     } catch (error) {
       console.error('Failed to remove book:', error)
       toast.error(error.message || 'Failed to remove book')
+    } finally {
+      setDeletingBookId(null)
     }
   }
 
@@ -289,7 +293,7 @@ function AdminDatabasePage() {
           <label className="adminDatabaseLabel">Book Image</label>
           <div className="adminDatabaseFileInputWrapper">
             <label htmlFor="bookImage" className="adminDatabaseFileLabel">
-              📤 {bookImageName || "Choose image"}
+              {bookImageName || "Choose image"}
             </label>
             <input
               id="bookImage"
@@ -366,6 +370,17 @@ function AdminDatabasePage() {
           <p className="adminDatabaseNoResults">No books found matching your search.</p>
         )}
       </div>
+
+      <ConfirmModal
+        isOpen={deletingBookId !== null}
+        onClose={() => setDeletingBookId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Book"
+        message="Are you sure you want to delete this book and all its copies? This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        isDestructive={true}
+      />
     </div>
   )
 }

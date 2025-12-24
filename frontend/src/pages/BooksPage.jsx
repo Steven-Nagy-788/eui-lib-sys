@@ -77,8 +77,8 @@ function BooksPage({ user }) {
   // Mutations for admin operations
   const updateMutation = useMutation({
     mutationFn: ({ id, data }) => updateBook(id, data),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['books'])
+    onSuccess: async () => {
+      await queryClient.invalidateQueries(['books'])
       toast.success('Book updated successfully')
       setEditingBook(null)
     },
@@ -89,8 +89,8 @@ function BooksPage({ user }) {
 
   const deleteMutation = useMutation({
     mutationFn: (id) => deleteBook(id),
-    onSuccess: () => {
-      queryClient.invalidateQueries(['books'])
+    onSuccess: async () => {
+      await queryClient.invalidateQueries(['books'])
       toast.success('Book deleted successfully')
       setDeletingBook(null)
     },
@@ -470,7 +470,7 @@ function BooksPage({ user }) {
                   marginBottom: '12px'
                 }}>
                   <h4 style={{ margin: '0 0 12px 0', fontSize: '15px', fontWeight: '600', color: '#1e40af' }}>
-                    📅 Loan Details
+                    Loan Details
                   </h4>
                   <div style={{ display: 'grid', gap: '8px', fontSize: '14px' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -490,7 +490,7 @@ function BooksPage({ user }) {
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
                           <span style={{ color: '#6b7280' }}>Calculation Method:</span>
                           <span style={{ fontWeight: '500', color: '#8b5cf6', fontSize: '12px' }}>
-                            {dueDateInfo.calculation_method === 'course_override' ? '🎓 Course Override' : '👤 Role Policy'}
+                            {dueDateInfo.calculation_method === 'course_override' ? 'Course Override' : 'Role Policy'}
                           </span>
                         </div>
                         <div style={{ display: 'flex', justifyContent: 'space-between' }}>
@@ -512,7 +512,7 @@ function BooksPage({ user }) {
                   color: '#92400e',
                   border: '1px solid #fbbf24'
                 }}>
-                  <strong>⚠️ Important:</strong>
+                  <strong>Important:</strong>
                   <ul style={{ margin: '6px 0 0 20px', padding: 0 }}>
                     <li>Your request requires admin approval</li>
                     <li>Check the Bookbag page to track your request status</li>
@@ -755,14 +755,14 @@ function BooksPage({ user }) {
                                 {copy.location && <span>Location: {copy.location}</span>}
                                 {copy.current_borrower_name && (
                                   <span style={{ marginLeft: copy.location ? '16px' : '0' }}>
-                                    📖 Borrowed by: <strong>{copy.current_borrower_name}</strong> ({copy.current_borrower_id})
+                                    Borrowed by: <strong>{copy.current_borrower_name}</strong> ({copy.current_borrower_id})
                                   </span>
                                 )}
                                 {!copy.current_borrower_name && copy.status === 'available' && !copy.is_reference && (
-                                  <span style={{ color: '#10b981' }}>✓ Available for loan</span>
+                                  <span style={{ color: '#10b981' }}>Available for loan</span>
                                 )}
                                 {!copy.current_borrower_name && copy.status === 'available' && copy.is_reference && (
-                                  <span style={{ color: '#6b7280' }}>📚 Reference only (Library use)</span>
+                                  <span style={{ color: '#6b7280' }}>Reference only (Library use)</span>
                                 )}
                                 {(copy.current_borrower_name || copy.status === 'maintenance') && (
                                   <span style={{ color: '#dc2626' }}> Unavailable (Checked Out)</span>

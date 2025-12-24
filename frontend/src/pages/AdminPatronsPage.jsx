@@ -76,7 +76,7 @@ function PatronCard({ patron, expandedId, onToggle, onUpdate, onViewDetails }) {
       await removeFromBlacklist(patron.id)
       toast.success('User whitelisted successfully')
       setIsBlacklisted(false)
-      if (onUpdate) onUpdate()
+      if (onUpdate) await onUpdate()
     } catch (error) {
       console.error('Failed to whitelist user:', error)
       toast.error(error.message || 'Failed to whitelist user')
@@ -98,7 +98,7 @@ function PatronCard({ patron, expandedId, onToggle, onUpdate, onViewDetails }) {
       setIsBlacklisted(true)
       setShowBlacklistModal(false)
       setBlacklistReason('')
-      if (onUpdate) onUpdate()
+      if (onUpdate) await onUpdate()
     } catch (error) {
       console.error('Failed to blacklist user:', error)
       toast.error(error.message || 'Failed to blacklist user')
@@ -159,7 +159,7 @@ function PatronCard({ patron, expandedId, onToggle, onUpdate, onViewDetails }) {
                   fontSize: '14px'
                 }}
               >
-                📊 View Full Details & Loan History
+                View Full Details & Loan History
               </button>
             </div>
             
@@ -213,7 +213,7 @@ function PatronCard({ patron, expandedId, onToggle, onUpdate, onViewDetails }) {
                 }}
               />
               <p style={{ marginTop: '12px', fontSize: '13px', color: '#dc2626' }}>
-                ⚠️ Blacklisted users will not be able to reserve books.
+                Blacklisted users will not be able to reserve books.
               </p>
             </div>
             <div className="modalFooter">
@@ -508,9 +508,9 @@ function AdminPatronsPage() {
                         <label style={{ fontSize: '12px', color: '#6b7280', display: 'block', marginBottom: '4px' }}>Status</label>
                         <p style={{ margin: 0, fontWeight: '500' }}>
                           {patronDetails.is_blacklisted ? (
-                            <span style={{ color: '#dc2626' }}>⛔ Blacklisted</span>
+                            <span style={{ color: '#dc2626' }}>Blacklisted</span>
                           ) : (
-                            <span style={{ color: '#10b981' }}>✓ Active</span>
+                            <span style={{ color: '#10b981' }}>Active</span>
                           )}
                         </p>
                       </div>
@@ -627,9 +627,9 @@ function AdminPatronsPage() {
                                 </td>
                                 <td style={{ padding: '8px' }}>
                                   {loan.is_overdue ? (
-                                    <span style={{ color: '#dc2626', fontWeight: '500' }}>⚠️ Overdue</span>
+                                    <span style={{ color: '#dc2626', fontWeight: '500' }}>Overdue</span>
                                   ) : (
-                                    <span style={{ color: '#10b981' }}>✓ Active</span>
+                                    <span style={{ color: '#10b981' }}>Active</span>
                                   )}
                                 </td>
                               </tr>

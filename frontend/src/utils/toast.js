@@ -112,8 +112,8 @@ const getIcon = (type) => {
   switch (type) {
     case 'success': return '✓';
     case 'error': return '✕';
-    case 'warning': return '⚠';
-    case 'info': return 'ℹ';
+    case 'warning': return '!';
+    case 'info': return 'i';
     default: return '•';
   }
 };
