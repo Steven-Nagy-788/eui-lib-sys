@@ -7,11 +7,18 @@ from abc import ABC, abstractmethod
 from typing import List, Optional
 from uuid import UUID
 
-from ..Models.Books import (BookCreate, BookResponse,
-                            BookWithStatsAndCoursesResponse,
-                            BookWithStatsResponse)
-from ..Models.Courses import (CourseCreate, CourseResponse, CourseUpdate,
-                              EnrollmentCreate)
+from ..Models.Books import (
+    BookCreate,
+    BookResponse,
+    BookWithStatsAndCoursesResponse,
+    BookWithStatsResponse,
+)
+from ..Models.Courses import (
+    CourseCreate,
+    CourseResponse,
+    CourseUpdate,
+    EnrollmentCreate,
+)
 from ..Models.Loans import LoanCreate, LoanResponse, LoanWithBookInfo
 from ..Models.Users import UserCreate, UserResponse, UserUpdate
 

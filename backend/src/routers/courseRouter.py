@@ -3,9 +3,15 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from ..Models.Courses import (CourseBookCreate, CourseBookResponse,
-                              CourseCreate, CourseResponse, CourseUpdate,
-                              EnrollmentCreate, EnrollmentResponse)
+from ..Models.Courses import (
+    CourseBookCreate,
+    CourseBookResponse,
+    CourseCreate,
+    CourseResponse,
+    CourseUpdate,
+    EnrollmentCreate,
+    EnrollmentResponse,
+)
 from ..Services.courseService import CourseService
 from ..utils.auth import get_current_user, require_admin
 from ..utils.dependencies import get_course_service

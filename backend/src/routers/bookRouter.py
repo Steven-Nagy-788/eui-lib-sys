@@ -3,9 +3,12 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 
-from ..Models.Books import (BookCreate, BookResponse,
-                            BookWithStatsAndCoursesResponse,
-                            BookWithStatsResponse)
+from ..Models.Books import (
+    BookCreate,
+    BookResponse,
+    BookWithStatsAndCoursesResponse,
+    BookWithStatsResponse,
+)
 from ..Services.bookService import BookService
 from ..utils.auth import get_current_user, require_admin
 from ..utils.dependencies import get_book_service

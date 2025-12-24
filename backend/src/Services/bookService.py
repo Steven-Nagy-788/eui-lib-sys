@@ -2,9 +2,14 @@ from typing import List, Optional
 from uuid import UUID
 
 from ..Brokers.bookBroker import BookBroker
-from ..Models.Books import (BookCopyStats, BookCreate, BookResponse,
-                            BookWithStatsAndCoursesResponse,
-                            BookWithStatsResponse, CourseInfo)
+from ..Models.Books import (
+    BookCopyStats,
+    BookCreate,
+    BookResponse,
+    BookWithStatsAndCoursesResponse,
+    BookWithStatsResponse,
+    CourseInfo,
+)
 from .IService import IBookService
 
 

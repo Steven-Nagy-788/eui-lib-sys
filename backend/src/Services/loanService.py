@@ -6,8 +6,14 @@ from ..Brokers.bookCopyBroker import BookCopyBroker
 from ..Brokers.courseBroker import CourseBroker
 from ..Brokers.loanBroker import LoanBroker
 from ..Brokers.userBroker import UserBroker
-from ..Models.Loans import (LoanPolicyResponse, LoanPolicyUpdate, LoanResponse,
-                            LoanStatus, LoanUpdate, LoanWithBookInfo)
+from ..Models.Loans import (
+    LoanPolicyResponse,
+    LoanPolicyUpdate,
+    LoanResponse,
+    LoanStatus,
+    LoanUpdate,
+    LoanWithBookInfo,
+)
 
 
 class LoanService:

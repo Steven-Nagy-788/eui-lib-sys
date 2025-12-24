@@ -4,8 +4,13 @@ from uuid import UUID
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from ..Brokers.userBroker import UserBroker
-from ..Models.Users import (UserCreate, UserDashboardResponse, UserResponse,
-                            UserStats, UserUpdate)
+from ..Models.Users import (
+    UserCreate,
+    UserDashboardResponse,
+    UserResponse,
+    UserStats,
+    UserUpdate,
+)
 
 
 class UserService:

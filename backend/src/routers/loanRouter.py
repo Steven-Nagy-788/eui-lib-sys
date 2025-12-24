@@ -3,8 +3,13 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from ..Models.Loans import (LoanPolicyResponse, LoanResponse, LoanStatus,
-                            LoanUpdate, LoanWithBookInfo)
+from ..Models.Loans import (
+    LoanPolicyResponse,
+    LoanResponse,
+    LoanStatus,
+    LoanUpdate,
+    LoanWithBookInfo,
+)
 from ..Services.loanService import LoanService
 from ..utils.auth import get_current_user, require_admin
 from ..utils.dependencies import get_loan_service

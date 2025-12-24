@@ -5,8 +5,14 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from jose import jwt
 
-from ..Models.Users import (Token, UserCreate, UserDashboardResponse,
-                            UserLogin, UserResponse, UserUpdate)
+from ..Models.Users import (
+    Token,
+    UserCreate,
+    UserDashboardResponse,
+    UserLogin,
+    UserResponse,
+    UserUpdate,
+)
 from ..Services.userService import UserService
 from ..utils.auth import get_current_user, require_admin
 from ..utils.config import get_settings
