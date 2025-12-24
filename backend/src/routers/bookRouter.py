@@ -1,16 +1,14 @@
-from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
 from uuid import UUID
 
-from ..utils.dependencies import get_book_service
-from ..utils.auth import require_admin, get_current_user
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from ..Models.Books import (BookCreate, BookResponse,
+                            BookWithStatsAndCoursesResponse,
+                            BookWithStatsResponse)
 from ..Services.bookService import BookService
-from ..Models.Books import (
-    BookCreate,
-    BookResponse,
-    BookWithStatsResponse,
-    BookWithStatsAndCoursesResponse,
-)
+from ..utils.auth import get_current_user, require_admin
+from ..utils.dependencies import get_book_service
 
 router = APIRouter(prefix="/books", tags=["books"])
 

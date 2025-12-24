@@ -1,13 +1,9 @@
 from typing import List, Optional
 from uuid import UUID
-from ..Models.Books import (
-    BookCopyCreate,
-    BookCopyResponse,
-    BookCopyUpdate,
-    BookStatus,
-    BookCopyWithBorrowerInfo,
-)
+
 from ..Brokers.bookCopyBroker import BookCopyBroker
+from ..Models.Books import (BookCopyCreate, BookCopyResponse, BookCopyUpdate,
+                            BookCopyWithBorrowerInfo, BookStatus)
 
 
 class BookCopyService:

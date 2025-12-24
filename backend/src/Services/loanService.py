@@ -1,18 +1,13 @@
+from datetime import datetime, timedelta, timezone
 from typing import List, Optional
 from uuid import UUID
-from datetime import datetime, timedelta, timezone
-from ..Models.Loans import (
-    LoanResponse,
-    LoanUpdate,
-    LoanStatus,
-    LoanPolicyResponse,
-    LoanPolicyUpdate,
-    LoanWithBookInfo,
-)
-from ..Brokers.loanBroker import LoanBroker
-from ..Brokers.userBroker import UserBroker
+
 from ..Brokers.bookCopyBroker import BookCopyBroker
 from ..Brokers.courseBroker import CourseBroker
+from ..Brokers.loanBroker import LoanBroker
+from ..Brokers.userBroker import UserBroker
+from ..Models.Loans import (LoanPolicyResponse, LoanPolicyUpdate, LoanResponse,
+                            LoanStatus, LoanUpdate, LoanWithBookInfo)
 
 
 class LoanService:

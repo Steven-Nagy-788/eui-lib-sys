@@ -3,10 +3,12 @@ Integration tests for Book Router
 Tests API endpoints with TestClient and mocked dependencies
 """
 
-import pytest
-from fastapi.testclient import TestClient
 from unittest.mock import patch
 from uuid import uuid4
+
+import pytest
+from fastapi.testclient import TestClient
+
 from src.main import app
 from src.Models.Books import BookResponse
 from src.utils.auth import get_current_user, require_admin
@@ -329,7 +331,7 @@ class TestBookRouter:
         with patch(
             "src.Services.bookService.BookService.RetrieveBooksWithStats"
         ) as mock_retrieve:
-            from src.Models.Books import BookWithStatsResponse, BookCopyStats
+            from src.Models.Books import BookCopyStats, BookWithStatsResponse
 
             mock_retrieve.return_value = [
                 BookWithStatsResponse(

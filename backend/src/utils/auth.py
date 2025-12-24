@@ -1,10 +1,12 @@
-from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from jose import JWTError, jwt
 from datetime import datetime
 from typing import Optional
-from .config import get_settings
+
+from fastapi import Depends, HTTPException, status
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from jose import JWTError, jwt
+
 from ..Models.Users import UserRole
+from .config import get_settings
 
 security = HTTPBearer()
 

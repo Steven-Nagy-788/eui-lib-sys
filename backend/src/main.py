@@ -2,14 +2,13 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from scalar_fastapi import get_scalar_api_reference
 
-from .utils.config import get_supabase
-from .routers.userRouter import router as user_router
-from .routers.bookRouter import router as book_router
 from .routers.bookCopyRouter import router as book_copy_router
+from .routers.bookRouter import router as book_router
 from .routers.courseRouter import router as course_router
 from .routers.loanRouter import router as loan_router
 from .routers.statsRouter import router as stats_router
-
+from .routers.userRouter import router as user_router
+from .utils.config import get_supabase
 
 app = FastAPI(
     title="Library System API",

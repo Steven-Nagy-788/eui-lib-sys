@@ -1,7 +1,8 @@
 import asyncio
-from supabase import Client
 from typing import Optional
 from uuid import UUID
+
+from supabase import Client
 
 
 class UserBroker:

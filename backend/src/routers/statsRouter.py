@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, Query
 
-from ..utils.dependencies import get_stats_service
-from ..utils.auth import require_admin
 from ..Services.statsService import StatsService
+from ..utils.auth import require_admin
+from ..utils.dependencies import get_stats_service
 
 router = APIRouter(prefix="/stats", tags=["statistics"])
 

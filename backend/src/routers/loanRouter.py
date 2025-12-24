@@ -1,17 +1,13 @@
-from fastapi import APIRouter, HTTPException, status, Depends, Query
 from typing import List, Optional
 from uuid import UUID
 
-from ..utils.dependencies import get_loan_service
-from ..utils.auth import get_current_user, require_admin
+from fastapi import APIRouter, Depends, HTTPException, Query, status
+
+from ..Models.Loans import (LoanPolicyResponse, LoanResponse, LoanStatus,
+                            LoanUpdate, LoanWithBookInfo)
 from ..Services.loanService import LoanService
-from ..Models.Loans import (
-    LoanResponse,
-    LoanUpdate,
-    LoanStatus,
-    LoanPolicyResponse,
-    LoanWithBookInfo,
-)
+from ..utils.auth import get_current_user, require_admin
+from ..utils.dependencies import get_loan_service
 
 router = APIRouter(prefix="/loans", tags=["loans"])
 

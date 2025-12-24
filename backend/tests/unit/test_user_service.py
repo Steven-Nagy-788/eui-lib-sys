@@ -3,11 +3,13 @@ Unit tests for UserService
 Tests business logic with mocked UserBroker
 """
 
-import pytest
 from unittest.mock import AsyncMock
 from uuid import UUID, uuid4
-from src.Services.userService import UserService
+
+import pytest
+
 from src.Models.Users import UserCreate, UserResponse, UserUpdate
+from src.Services.userService import UserService
 
 
 class TestUserService:

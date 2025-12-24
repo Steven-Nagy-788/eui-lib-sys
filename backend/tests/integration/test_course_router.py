@@ -5,6 +5,7 @@ Tests API endpoints with mocked authentication
 
 import pytest
 from fastapi.testclient import TestClient
+
 from src.main import app
 
 

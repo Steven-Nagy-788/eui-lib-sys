@@ -3,9 +3,11 @@ Unit tests for BookBroker
 Tests database operations with mocked Supabase client
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
 from uuid import UUID, uuid4
+
+import pytest
+
 from src.Brokers.bookBroker import BookBroker
 
 

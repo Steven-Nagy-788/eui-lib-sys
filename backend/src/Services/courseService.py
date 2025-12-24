@@ -1,15 +1,10 @@
 from typing import List, Optional
 from uuid import UUID
-from ..Models.Courses import (
-    CourseCreate,
-    CourseResponse,
-    CourseUpdate,
-    EnrollmentCreate,
-    EnrollmentResponse,
-    CourseBookCreate,
-    CourseBookResponse,
-)
+
 from ..Brokers.courseBroker import CourseBroker
+from ..Models.Courses import (CourseBookCreate, CourseBookResponse,
+                              CourseCreate, CourseResponse, CourseUpdate,
+                              EnrollmentCreate, EnrollmentResponse)
 
 
 class CourseService:

@@ -1,8 +1,9 @@
 import asyncio
-from supabase import Client
+from datetime import datetime
 from typing import Optional
 from uuid import UUID
-from datetime import datetime
+
+from supabase import Client
 
 
 class LoanBroker:

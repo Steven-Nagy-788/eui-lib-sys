@@ -3,9 +3,11 @@ Unit tests for LoanBroker
 Tests database operations with mocked Supabase client
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
 from uuid import UUID, uuid4
+
+import pytest
+
 from src.Brokers.loanBroker import LoanBroker
 
 

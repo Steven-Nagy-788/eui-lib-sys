@@ -3,10 +3,12 @@ Unit tests for CourseService
 Tests business logic with mocked CourseBroker
 """
 
-import pytest
 from unittest.mock import AsyncMock
-from src.Services.courseService import CourseService
+
+import pytest
+
 from src.Models.Courses import CourseCreate, CourseResponse, CourseUpdate
+from src.Services.courseService import CourseService
 
 
 class TestCourseService:

@@ -3,11 +3,13 @@ Unit tests for LoanService
 Tests business logic with mocked dependencies
 """
 
-import pytest
 from unittest.mock import AsyncMock
 from uuid import uuid4
-from src.Services.loanService import LoanService
+
+import pytest
+
 from src.Models.Loans import LoanResponse, LoanStatus
+from src.Services.loanService import LoanService
 
 
 class TestLoanService:

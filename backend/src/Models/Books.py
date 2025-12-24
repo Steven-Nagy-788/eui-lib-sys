@@ -1,7 +1,8 @@
-from pydantic import BaseModel, UUID4
-from typing import Optional, Dict, Any, List
 from datetime import datetime
 from enum import Enum
+from typing import Any, Dict, List, Optional
+
+from pydantic import UUID4, BaseModel
 
 
 # --- ENUMS ---

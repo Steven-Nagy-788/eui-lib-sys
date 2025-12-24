@@ -1,19 +1,14 @@
-from fastapi import APIRouter, HTTPException, status, Depends
 from typing import List
 from uuid import UUID
 
-from ..utils.dependencies import get_course_service
-from ..utils.auth import require_admin, get_current_user
+from fastapi import APIRouter, Depends, HTTPException, status
+
+from ..Models.Courses import (CourseBookCreate, CourseBookResponse,
+                              CourseCreate, CourseResponse, CourseUpdate,
+                              EnrollmentCreate, EnrollmentResponse)
 from ..Services.courseService import CourseService
-from ..Models.Courses import (
-    CourseCreate,
-    CourseResponse,
-    CourseUpdate,
-    EnrollmentCreate,
-    EnrollmentResponse,
-    CourseBookCreate,
-    CourseBookResponse,
-)
+from ..utils.auth import get_current_user, require_admin
+from ..utils.dependencies import get_course_service
 
 router = APIRouter(prefix="/courses", tags=["courses"])
 

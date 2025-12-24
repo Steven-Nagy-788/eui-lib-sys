@@ -1,18 +1,19 @@
 from fastapi import Depends
 from supabase import Client
-from .config import get_supabase
-from ..Brokers.userBroker import UserBroker
+
 from ..Brokers.bookBroker import BookBroker
 from ..Brokers.bookCopyBroker import BookCopyBroker
 from ..Brokers.courseBroker import CourseBroker
 from ..Brokers.loanBroker import LoanBroker
 from ..Brokers.statsBroker import StatsBroker
-from ..Services.userService import UserService
-from ..Services.bookService import BookService
+from ..Brokers.userBroker import UserBroker
 from ..Services.bookCopyService import BookCopyService
+from ..Services.bookService import BookService
 from ..Services.courseService import CourseService
 from ..Services.loanService import LoanService
 from ..Services.statsService import StatsService
+from ..Services.userService import UserService
+from .config import get_supabase
 
 
 # 1. Inject the Singleton Client

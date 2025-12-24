@@ -3,9 +3,11 @@ Unit tests for UserBroker
 Tests database operations with mocked Supabase client
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
 from uuid import UUID
+
+import pytest
+
 from src.Brokers.userBroker import UserBroker
 
 

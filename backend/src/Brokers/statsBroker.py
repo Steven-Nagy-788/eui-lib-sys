@@ -1,7 +1,8 @@
 import asyncio
-from supabase import Client
 from datetime import datetime
+
 from fastapi import HTTPException
+from supabase import Client
 
 
 class StatsBroker:

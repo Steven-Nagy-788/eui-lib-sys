@@ -3,8 +3,10 @@ Unit tests for CourseBroker
 Tests database operations with mocked Supabase client
 """
 
-import pytest
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from src.Brokers.courseBroker import CourseBroker
 
 

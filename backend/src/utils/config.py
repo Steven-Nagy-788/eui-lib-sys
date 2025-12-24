@@ -1,7 +1,8 @@
 from functools import lru_cache
-from supabase import create_client, Client
-from pydantic_settings import BaseSettings
 from pathlib import Path
+
+from pydantic_settings import BaseSettings
+from supabase import Client, create_client
 
 # Get the absolute path to the .env file in the same directory as this config.py
 env_path = Path(__file__).parent / ".env"

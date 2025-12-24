@@ -1,21 +1,16 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from datetime import datetime, timedelta
 from typing import List
 from uuid import UUID
-from datetime import datetime, timedelta
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from jose import jwt
 
-from ..utils.dependencies import get_user_service
-from ..utils.auth import require_admin, get_current_user
+from ..Models.Users import (Token, UserCreate, UserDashboardResponse,
+                            UserLogin, UserResponse, UserUpdate)
 from ..Services.userService import UserService
-from ..Models.Users import (
-    UserCreate,
-    UserResponse,
-    UserLogin,
-    Token,
-    UserUpdate,
-    UserDashboardResponse,
-)
+from ..utils.auth import get_current_user, require_admin
 from ..utils.config import get_settings
+from ..utils.dependencies import get_user_service
 
 router = APIRouter(prefix="/users", tags=["users"])
 
